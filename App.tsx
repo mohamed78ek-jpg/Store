@@ -14,16 +14,57 @@ import { Search, Mail, Banknote } from 'lucide-react';
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [reports, setReports] = useState<Report[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<Language>('ar');
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
-  const [bannerText, setBannerText] = useState('');
-  const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
+  
+  // Local Storage Persistence
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('store_products');
+    return saved ? JSON.parse(saved) : PRODUCTS;
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('store_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [reports, setReports] = useState<Report[]>(() => {
+    const saved = localStorage.getItem('store_reports');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [bannerText, setBannerText] = useState(() => {
+    return localStorage.getItem('store_banner') || '';
+  });
+
+  const [popupConfig, setPopupConfig] = useState<PopupConfig>(() => {
+    const saved = localStorage.getItem('store_popup');
+    return saved ? JSON.parse(saved) : { isActive: false, image: '' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('store_products', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('store_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('store_reports', JSON.stringify(reports));
+  }, [reports]);
+
+  useEffect(() => {
+    localStorage.setItem('store_banner', bannerText);
+  }, [bannerText]);
+
+  useEffect(() => {
+    localStorage.setItem('store_popup', JSON.stringify(popupConfig));
+  }, [popupConfig]);
+
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
 

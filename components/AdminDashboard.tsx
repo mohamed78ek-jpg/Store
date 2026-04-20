@@ -432,7 +432,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                     
                     <button 
-                      onClick={() => onDeleteReport(report.id)}
+                      onClick={() => {
+                        if (window.confirm(t('هل أنت متأكد من حذف هذا البلاغ؟', 'Are you sure you want to delete this report?'))) {
+                          onDeleteReport(report.id);
+                        }
+                      }}
                       className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
                       title={t('حذف البلاغ', 'Delete Report')}
                     >
@@ -632,7 +636,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <button 
-                  onClick={() => onRemoveProduct(product.id)}
+                  onClick={() => {
+                    if (window.confirm(t('هل أنت متأكد من حذف هذا المنتج نهائياً؟', 'Are you sure you want to delete this product permanently?'))) {
+                      onRemoveProduct(product.id);
+                    }
+                  }}
                   className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
                   title={t('حذف', 'Delete')}
                 >
