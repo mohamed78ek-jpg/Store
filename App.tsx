@@ -50,32 +50,19 @@ function App() {
 
   // 2. Real-time Database Listeners
   useEffect(() => {
-    // Products
+    // 2a. Public Listeners (Products & Config)
     const qProducts = query(collection(db, 'products'), orderBy('id', 'desc'));
     const unsubProducts = onSnapshot(qProducts, (snap) => {
       if (snap.empty) {
-        // Fallback to constants if DB is empty for first time
         setProducts(PRODUCTS);
-        // Optional: seed database with defaults
-        PRODUCTS.forEach(p => setDoc(doc(db, 'products', p.id.toString()), p));
       } else {
         setProducts(snap.docs.map(doc => doc.data() as Product));
       }
+    }, (error) => {
+      console.error("Products fallback error:", error);
+      setProducts(PRODUCTS);
     });
 
-    // Orders
-    const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'));
-    const unsubOrders = onSnapshot(qOrders, (snap) => {
-      setOrders(snap.docs.map(doc => doc.data() as Order));
-    });
-
-    // Reports
-    const qReports = query(collection(db, 'reports'), orderBy('date', 'desc'));
-    const unsubReports = onSnapshot(qReports, (snap) => {
-      setReports(snap.docs.map(doc => doc.data() as Report));
-    });
-
-    // Site Config
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
@@ -84,13 +71,31 @@ function App() {
       }
     });
 
+    // 2b. Admin Listeners (Orders & Reports)
+    let unsubOrders = () => {};
+    let unsubReports = () => {};
+
+    const isAdminEmail = currentUser?.email === 'mohamederrabani951@gmail.com';
+
+    if (isAdminEmail) {
+      const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'));
+      unsubOrders = onSnapshot(qOrders, (snap) => {
+        setOrders(snap.docs.map(doc => doc.data() as Order));
+      }, (err) => console.error("Orders listener error:", err));
+
+      const qReports = query(collection(db, 'reports'), orderBy('date', 'desc'));
+      unsubReports = onSnapshot(qReports, (snap) => {
+        setReports(snap.docs.map(doc => doc.data() as Report));
+      }, (err) => console.error("Reports listener error:", err));
+    }
+
     return () => {
       unsubProducts();
+      unsubConfig();
       unsubOrders();
       unsubReports();
-      unsubConfig();
     };
-  }, []);
+  }, [currentUser]);
 
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
@@ -299,6 +304,7 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
+            currentUser={currentUser}
           />
         );
       case ViewState.CART:
@@ -359,7 +365,7 @@ function App() {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {filteredProducts.map(product => (
                 <ProductCard 
                   key={product.id} 

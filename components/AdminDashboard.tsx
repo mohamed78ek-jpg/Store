@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
+import { loginWithGoogle, logout } from '../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -18,6 +19,7 @@ interface AdminDashboardProps {
   onDeleteReport: (reportId: string) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
+  currentUser: any;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -34,13 +36,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateOrderStatus,
   onDeleteReport,
   isAuthenticated,
-  onLogin
+  onLogin,
+  currentUser
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   
+  const isAdminFirebase = currentUser?.email === 'mohamederrabani951@gmail.com';
+  const isFullyAuth = isAuthenticated && isAdminFirebase;
+
   // Updated tabs state
   const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
@@ -58,7 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === 'Mohamed' && password === 'Mohamed2003') {
       onLogin(true);
@@ -68,8 +75,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleLogout = () => {
+  const handleFirebaseLogin = async () => {
+    setIsLoadingAuth(true);
+    try {
+      await loginWithGoogle();
+      setError('');
+    } catch (err: any) {
+      setError(t('فشل تسجيل الدخول عبر جوجل', 'Google Login failed'));
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
+
+  const handleFullLogout = async () => {
     onLogin(false);
+    await logout();
   };
 
   // Predefined Categories
@@ -141,57 +161,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return encodeURIComponent(qrString);
   };
 
-  if (!isAuthenticated) {
+  if (!isFullyAuth) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md">
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4">
-              <ShieldCheck size={32} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">{t('تسجيل دخول المسؤول', 'Admin Login')}</h2>
-          </div>
+           <div className="flex flex-col items-center mb-6 text-center">
+             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4">
+               <ShieldCheck size={32} />
+             </div>
+             <h2 className="text-2xl font-bold text-gray-900">{t('لوحة التحكم', 'Admin Dashboard')}</h2>
+             <p className="text-gray-500 mt-2">{t('يرجى تسجيل الدخول للمتابعة', 'Please login to continue')}</p>
+           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                dir="ltr"
-              />
-            </div>
-            
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('كلمة المرور', 'Password')}</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                dir="ltr"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-[34px] right-3 text-gray-400 hover:text-gray-600"
-                style={{ right: language === 'ar' ? 'auto' : '0.75rem', left: language === 'ar' ? '0.75rem' : 'auto' }}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+           {!isAuthenticated ? (
+              <form onSubmit={handleManualLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    dir="ltr"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('كلمة المرور', 'Password')}</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute top-[34px] right-3 text-gray-400 hover:text-gray-600"
+                    style={{ right: language === 'ar' ? 'auto' : '0.75rem', left: language === 'ar' ? '0.75rem' : 'auto' }}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && <p className="text-red-500 text-sm">{error}</p>}
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
-            >
-              {t('دخول', 'Login')}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
+                >
+                  {t('دخول النظام', 'Login System')}
+                </button>
+              </form>
+           ) : (
+             <div className="space-y-4">
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-3">
+                  <CheckCircle className="text-emerald-600" size={24} />
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900">{t('تم التحقق من النظام', 'System Verified')}</p>
+                    <p className="text-xs text-emerald-700">{t('الآن سجل الدخول ببريد Firebase المعتمد', 'Now login with authorized Firebase email')}</p>
+                  </div>
+                </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                <button
+                  onClick={handleFirebaseLogin}
+                  disabled={isLoadingAuth}
+                  className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  <Mail size={20} />
+                  {isLoadingAuth ? t('جاري التوصيل...', 'Connecting...') : t('تسجيل دخول Firebase (Google)', 'Firebase Login (Google)')}
+                </button>
+
+                <button
+                   onClick={() => onLogin(false)}
+                   className="w-full text-gray-500 text-sm hover:underline"
+                >
+                  {t('رجوع', 'Go Back')}
+                </button>
+             </div>
+           )}
         </div>
       </div>
     );
@@ -202,7 +253,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
         <button 
-          onClick={handleLogout}
+          onClick={handleFullLogout}
           className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
         >
           <LogOut size={20} />
