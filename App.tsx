@@ -432,15 +432,6 @@ function App() {
               ))}
             </div>
 
-            {hasQuotaError && products.length > 0 && (
-              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-100 rounded-xl flex items-center gap-3">
-                <div className="h-2 w-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                <p className="text-yellow-800 text-sm font-medium">
-                  {t('أنت تشاهد نسخة مخزنة من المنتجات. قد لا تتوفر التحديثات الحالية بسبب ضغط السيرفر.', 'You are viewing a cached version of products. Live updates are currently unavailable due to server load.')}
-                </p>
-              </div>
-            )}
-
             {/* Grid - Highly Responsive Layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8">
               {filteredProducts.map(product => (
@@ -454,37 +445,16 @@ function App() {
               {filteredProducts.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center gap-4">
-                     {hasQuotaError ? (
-                       <>
-                         <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 max-w-md">
-                           <p className="text-orange-800 font-medium mb-2">
-                             {t('عذراً، تعذر تحميل المنتجات حالياً.', 'Sorry, we couldn\'t load the products right now.')}
-                           </p>
-                           <p className="text-sm text-orange-600 mb-4">
-                             {t('قد يكون ذلك بسبب تجاوز حد استهلاك البيانات اليومي للموقع. يرجى المحاولة في وقت لاحق.', 'This might be due to exceeding the daily data quota. Please try again later.')}
-                           </p>
-                           <button 
-                             onClick={() => fetchProducts()}
-                             className="bg-orange-100 text-orange-800 px-6 py-2 rounded-lg hover:bg-orange-200 transition-colors font-bold text-sm"
-                           >
-                             {t('إعادة المحاولة', 'Try Again')}
-                           </button>
-                         </div>
-                       </>
-                     ) : (
-                       <>
-                         <Search size={48} className="text-gray-200" />
-                         <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
-                         {(selectedCategory !== 'All' || searchQuery) && (
-                           <button 
-                             onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
-                             className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
-                           >
-                             {t('عرض كل المنتجات', 'Show all products')}
-                           </button>
-                         )}
-                       </>
-                     )}
+                    <Search size={48} className="text-gray-200" />
+                    <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
+                    {(selectedCategory !== 'All' || searchQuery) && (
+                      <button 
+                        onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+                        className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
+                      >
+                        {t('عرض كل المنتجات', 'Show all products')}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
