@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Store products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "discountPrice": { "type": "number" },
+        "image": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "sizes": { "type": "array" }
+      },
+      "required": ["id", "name", "price", "image", "category"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerAddress": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerPhone", "customerAddress", "items", "total", "status", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "User reports/feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "name": { "type": "string" },
+        "contact": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "type", "description", "status", "createdAt"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Site global configuration",
+      "type": "object",
+      "properties": {
+        "bannerText": { "type": "string" },
+        "popupConfig": { "type": "object" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "All shop products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Store orders tracked by ID"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Issues and feedback reports"
+    },
+    "/siteConfig/global": {
+      "schema": "Config",
+      "description": "Global store settings like banner text and popups"
+    }
+  }
+}

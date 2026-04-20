@@ -10,6 +10,19 @@ import { ReportProblem } from './components/ReportProblem';
 import { PRODUCTS } from './constants';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
+import { db, auth } from './lib/firebase';
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy,
+  runTransaction
+} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -20,50 +33,64 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<Language>('ar');
   
-  // Local Storage Persistence
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('store_products');
-    return saved ? JSON.parse(saved) : PRODUCTS;
-  });
+  // Firebase Real-time State
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [bannerText, setBannerText] = useState('');
+  const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('store_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [reports, setReports] = useState<Report[]>(() => {
-    const saved = localStorage.getItem('store_reports');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [bannerText, setBannerText] = useState(() => {
-    return localStorage.getItem('store_banner') || '';
-  });
-
-  const [popupConfig, setPopupConfig] = useState<PopupConfig>(() => {
-    const saved = localStorage.getItem('store_popup');
-    return saved ? JSON.parse(saved) : { isActive: false, image: '' };
-  });
-
+  // 1. Auth Listener
   useEffect(() => {
-    localStorage.setItem('store_products', JSON.stringify(products));
-  }, [products]);
+    return onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+  }, []);
 
+  // 2. Real-time Database Listeners
   useEffect(() => {
-    localStorage.setItem('store_orders', JSON.stringify(orders));
-  }, [orders]);
+    // Products
+    const qProducts = query(collection(db, 'products'), orderBy('id', 'desc'));
+    const unsubProducts = onSnapshot(qProducts, (snap) => {
+      if (snap.empty) {
+        // Fallback to constants if DB is empty for first time
+        setProducts(PRODUCTS);
+        // Optional: seed database with defaults
+        PRODUCTS.forEach(p => setDoc(doc(db, 'products', p.id.toString()), p));
+      } else {
+        setProducts(snap.docs.map(doc => doc.data() as Product));
+      }
+    });
 
-  useEffect(() => {
-    localStorage.setItem('store_reports', JSON.stringify(reports));
-  }, [reports]);
+    // Orders
+    const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'));
+    const unsubOrders = onSnapshot(qOrders, (snap) => {
+      setOrders(snap.docs.map(doc => doc.data() as Order));
+    });
 
-  useEffect(() => {
-    localStorage.setItem('store_banner', bannerText);
-  }, [bannerText]);
+    // Reports
+    const qReports = query(collection(db, 'reports'), orderBy('date', 'desc'));
+    const unsubReports = onSnapshot(qReports, (snap) => {
+      setReports(snap.docs.map(doc => doc.data() as Report));
+    });
 
-  useEffect(() => {
-    localStorage.setItem('store_popup', JSON.stringify(popupConfig));
-  }, [popupConfig]);
+    // Site Config
+    const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.bannerText !== undefined) setBannerText(data.bannerText);
+        if (data.popupConfig !== undefined) setPopupConfig(data.popupConfig);
+      }
+    });
+
+    return () => {
+      unsubProducts();
+      unsubOrders();
+      unsubReports();
+      unsubConfig();
+    };
+  }, []);
 
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
@@ -160,10 +187,8 @@ function App() {
     }));
   };
 
-  const handlePlaceOrder = (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
-    // Generate 7-digit random number
+  const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
-    
     const newOrder: Order = {
       ...orderData,
       id: orderId,
@@ -171,54 +196,88 @@ function App() {
       status: 'pending'
     };
     
-    setOrders(prev => [newOrder, ...prev]);
-    setCart([]); // Clear cart
-    showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
-    setCurrentView(ViewState.HOME);
+    try {
+      await setDoc(doc(db, 'orders', orderId), newOrder);
+      setCart([]); 
+      showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
+      setCurrentView(ViewState.HOME);
+    } catch (err) {
+      console.error("Order failed:", err);
+      showNotification(t('خطأ في إرسال الطلب', 'Error placing order'));
+    }
   };
 
   // Report Problem Logic
-  const handleReportSubmit = (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
+  const handleReportSubmit = async (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
+    const reportId = Date.now().toString();
     const newReport: Report = {
       ...reportData,
-      id: Date.now().toString(),
+      id: reportId,
       date: new Date().toISOString(),
       isRead: false
     };
-    setReports(prev => [newReport, ...prev]);
+    try {
+      await setDoc(doc(db, 'reports', reportId), newReport);
+      showNotification(t('تم إرسال بلاغك بنجاح', 'Report submitted successfully'));
+    } catch (err) {
+      showNotification(t('خطأ في إرسال البلاغ', 'Error submitting report'));
+    }
   };
 
-  const handleDeleteReport = (reportId: string) => {
-    setReports(prev => prev.filter(r => r.id !== reportId));
-    showNotification(t('تم حذف البلاغ', 'Report deleted'));
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      await deleteDoc(doc(db, 'reports', reportId));
+      showNotification(t('تم حذف البلاغ', 'Report deleted'));
+    } catch (err) {
+      showNotification(t('خطأ في الحذف', 'Error deleting report'));
+    }
   };
 
 
   // Admin Functions
-  const handleAddProduct = (newProduct: Product) => {
-    setProducts(prev => [newProduct, ...prev]);
-    showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+  const handleAddProduct = async (newProduct: Product) => {
+    try {
+      await setDoc(doc(db, 'products', newProduct.id.toString()), newProduct);
+      showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+    } catch (err) {
+      showNotification(t('فشل إضافة المنتج', 'Failed to add product'));
+    }
   };
 
-  const handleRemoveProduct = (id: number) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    
-    // Also remove from cart (all sizes of this product)
-    setCart(prev => prev.filter(item => item.id !== id));
-    showNotification(t('تم حذف المنتج', 'Product deleted'));
+  const handleRemoveProduct = async (id: number) => {
+    try {
+      await deleteDoc(doc(db, 'products', id.toString()));
+      // Also remove from cart (local only as cart isn't in FB)
+      setCart(prev => prev.filter(item => item.id !== id));
+      showNotification(t('تم حذف المنتج', 'Product deleted'));
+    } catch (err) {
+      showNotification(t('فشل حذف المنتج', 'Failed to delete product'));
+    }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+    } catch (err) {
+      showNotification(t('فشل تحديث الحالة', 'Failed to update status'));
+    }
   };
 
-  const handleUpdateBannerText = (text: string) => {
-    setBannerText(text);
+  const handleUpdateBannerText = async (text: string) => {
+    try {
+      await setDoc(doc(db, 'siteConfig', 'global'), { bannerText: text }, { merge: true });
+    } catch (err) {
+      showNotification(t('خطأ في تحديث البنر', 'Error updating banner'));
+    }
   };
 
-  const handleUpdatePopupConfig = (config: PopupConfig) => {
-    setPopupConfig(config);
+  const handleUpdatePopupConfig = async (config: PopupConfig) => {
+    try {
+      await setDoc(doc(db, 'siteConfig', 'global'), { popupConfig: config }, { merge: true });
+    } catch (err) {
+      showNotification(t('خطأ في تحديث الإعلان', 'Error updating popup'));
+    }
   };
 
   const renderContent = () => {
