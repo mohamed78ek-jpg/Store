@@ -14,39 +14,29 @@ service cloud.firestore {
     // Products
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if true;
     }
 
     // Orders
     match /orders/{orderId} {
-      allow get: if true; // Allow customers to track by ID
-      allow list: if isAdmin();
-      allow create: if (
-        request.resource.data.customerName is string &&
-        request.resource.data.customerName.size() <= 100 &&
-        request.resource.data.phoneNumber is string &&
-        request.resource.data.phoneNumber.size() <= 20 &&
-        request.resource.data.status == 'pending'
-      );
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     // Reports
     match /reports/{reportId} {
-      allow create: if (
-        request.resource.data.name is string &&
-        request.resource.data.message is string &&
-        request.resource.data.message.size() <= 1000
-      );
-      allow read: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if true;
+      allow read: if true;
+      allow delete: if true;
     }
 
     // Settings
     match /settings/global {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if true;
     }
 
     // Admins collection - used for Role Based Access Control
