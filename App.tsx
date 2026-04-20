@@ -22,6 +22,7 @@ function App() {
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasQuotaError, setHasQuotaError] = useState(false);
   const [language, setLanguage] = useState<Language>('ar');
   const [products, setProducts] = useState<Product[]>([]);
   const [bannerText, setBannerText] = useState('');
@@ -47,6 +48,7 @@ function App() {
 
   // Sync Products & Manual Refresh
   const fetchProducts = async () => {
+    setHasQuotaError(false);
     try {
       const { getDocs, query, collection } = await import('firebase/firestore');
       const snapshot = await getDocs(collection(db, 'products'));
@@ -55,6 +57,7 @@ function App() {
       setIsLoading(false);
     } catch (e: any) {
       if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
+        setHasQuotaError(true);
         showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
       }
       setIsLoading(false);
@@ -66,8 +69,10 @@ function App() {
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
       setProducts(prods);
       setIsLoading(false);
+      setHasQuotaError(false);
     }, (error) => {
       if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
+        setHasQuotaError(true);
         showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
       }
       console.warn("Products listener failed:", error);
@@ -404,15 +409,36 @@ function App() {
               {filteredProducts.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center gap-4">
-                     <Search size={48} className="text-gray-200" />
-                     <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
-                     {(selectedCategory !== 'All' || searchQuery) && (
-                       <button 
-                         onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
-                         className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
-                       >
-                         {t('عرض كل المنتجات', 'Show all products')}
-                       </button>
+                     {hasQuotaError ? (
+                       <>
+                         <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 max-w-md">
+                           <p className="text-orange-800 font-medium mb-2">
+                             {t('عذراً، تعذر تحميل المنتجات حالياً.', 'Sorry, we couldn\'t load the products right now.')}
+                           </p>
+                           <p className="text-sm text-orange-600 mb-4">
+                             {t('قد يكون ذلك بسبب تجاوز حد استهلاك البيانات اليومي للموقع. يرجى المحاولة في وقت لاحق.', 'This might be due to exceeding the daily data quota. Please try again later.')}
+                           </p>
+                           <button 
+                             onClick={() => fetchProducts()}
+                             className="bg-orange-100 text-orange-800 px-6 py-2 rounded-lg hover:bg-orange-200 transition-colors font-bold text-sm"
+                           >
+                             {t('إعادة المحاولة', 'Try Again')}
+                           </button>
+                         </div>
+                       </>
+                     ) : (
+                       <>
+                         <Search size={48} className="text-gray-200" />
+                         <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
+                         {(selectedCategory !== 'All' || searchQuery) && (
+                           <button 
+                             onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+                             className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
+                           >
+                             {t('عرض كل المنتجات', 'Show all products')}
+                           </button>
+                         )}
+                       </>
                      )}
                   </div>
                 </div>
