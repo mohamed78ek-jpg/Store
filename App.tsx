@@ -55,34 +55,43 @@ function App() {
     return () => unsub();
   }, []);
 
-  // Sync Orders (Admin Only)
+  // Sync Orders (Admin Only - Activated only when viewing Admin panel)
   useEffect(() => {
+    if (currentView !== ViewState.ADMIN) {
+      setOrders([]);
+      return;
+    }
     const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const ords = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Order));
       setOrders(ords);
     }, (error) => {
-      // Only log if it's not a permission error or if we're actually trying to be an admin
-      if (!error.message.includes('permission-denied')) {
+      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
+        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+      } else if (!error.message.includes('permission-denied')) {
         console.warn("Orders listener failed:", error);
       }
     });
     return () => unsub();
-  }, []);
+  }, [currentView]);
 
-  // Sync Reports (Admin Only)
+  // Sync Reports (Admin Only - Activated only when viewing Admin panel)
   useEffect(() => {
+    if (currentView !== ViewState.ADMIN) {
+      setReports([]);
+      return;
+    }
     const q = query(collection(db, 'reports'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const reps = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Report));
       setReports(reps);
     }, (error) => {
-      if (!error.message.includes('permission-denied')) {
+      if (!error.message.includes('permission-denied') && !error.message.includes('quota')) {
         console.warn("Reports listener failed:", error);
       }
     });
     return () => unsub();
-  }, []);
+  }, [currentView]);
 
   // Sync Settings
   useEffect(() => {
