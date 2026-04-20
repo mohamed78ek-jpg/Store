@@ -7,7 +7,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
-import { db, handleFirestoreError, auth } from './src/lib/firebase';
+import { db, handleFirestoreError, auth } from './lib/firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
