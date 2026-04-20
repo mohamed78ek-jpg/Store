@@ -8,7 +8,8 @@ import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
 import { HealthControl } from './components/HealthControl';
-import { PRODUCTS } from './constants';
+import { db, handleFirestoreError } from './src/lib/firebase';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 
@@ -22,10 +23,53 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<Language>('ar');
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
-  const [bannerText, setBannerText] = useState('أهلاً بكم في متجر الأناقة - خصومات تصل إلى 50% على التشكيلة الجديدة! 🌟 شحن مجاني للطلبات فوق 300 د.م');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [bannerText, setBannerText] = useState('');
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [showAdPopup, setShowAdPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Sync Products
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
+      setProducts(prods);
+      setIsLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Sync Orders
+  useEffect(() => {
+    const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const ords = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Order));
+      setOrders(ords);
+    });
+    return () => unsub();
+  }, []);
+
+  // Sync Reports
+  useEffect(() => {
+    const q = query(collection(db, 'reports'), orderBy('date', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const reps = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Report));
+      setReports(reps);
+    });
+    return () => unsub();
+  }, []);
+
+  // Sync Settings
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.bannerText !== undefined) setBannerText(data.bannerText);
+        if (data.popupConfig) setPopupConfig(data.popupConfig);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Handle Direction and Language
   useEffect(() => {
@@ -45,9 +89,8 @@ function App() {
   // Translation helper
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  // Extract unique categories from products state
+  // Categories
   const categories = useMemo(() => {
-    // We use 'All' as a key, and translate it in the UI
     const allCategories = products.map(p => p.category);
     return ['All', ...new Set(allCategories)];
   }, [products]);
@@ -59,13 +102,9 @@ function App() {
 
   const filteredProducts = useMemo(() => {
     let result = products;
-
-    // Filter by Category
     if (selectedCategory !== 'All') {
       result = result.filter(p => p.category === selectedCategory);
     }
-
-    // Filter by Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(p => 
@@ -73,7 +112,6 @@ function App() {
         p.description.toLowerCase().includes(q)
       );
     }
-
     return result;
   }, [selectedCategory, searchQuery, language, products]);
 
@@ -95,7 +133,7 @@ function App() {
       }
       return [...prev, { 
         ...product, 
-        price: priceToUse, // Ensure we use the discounted price if available
+        price: priceToUse,
         quantity: 1, 
         selectedSize: size,
         cartId: cartId 
@@ -119,65 +157,98 @@ function App() {
     }));
   };
 
-  const handlePlaceOrder = (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
-    // Generate 7-digit random number
+  const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
-    
-    const newOrder: Order = {
-      ...orderData,
-      id: orderId,
-      date: new Date().toISOString(),
-      status: 'pending'
-    };
-    
-    setOrders(prev => [newOrder, ...prev]);
-    setCart([]); // Clear cart
-    showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
-    setCurrentView(ViewState.HOME);
-  };
-
-  // Report Problem Logic
-  const handleReportSubmit = (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
-    const newReport: Report = {
-      ...reportData,
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      isRead: false
-    };
-    setReports(prev => [newReport, ...prev]);
-    // Notification is handled in the component via success UI, but we can add one here if needed
-  };
-
-  const handleDeleteReport = (reportId: string) => {
-    setReports(prev => prev.filter(r => r.id !== reportId));
-    showNotification(t('تم حذف البلاغ', 'Report deleted'));
-  };
-
-
-  // Admin Functions
-  const handleAddProduct = (newProduct: Product) => {
-    setProducts(prev => [...prev, newProduct]);
-    showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
-  };
-
-  const handleRemoveProduct = (id: number) => {
-    const productToDelete = products.find(p => p.id === id);
-    setProducts(prev => prev.filter(p => p.id !== id));
-    
-    // Also remove from cart (all sizes of this product)
-    setCart(prev => prev.filter(item => item.id !== id));
-    
-    if (productToDelete) {
-      showNotification(t(`تم حذف "${productToDelete.name}"`, `Deleted "${productToDelete.name}"`));
+    try {
+      await setDoc(doc(db, 'orders', orderId), {
+        ...orderData,
+        date: new Date().toISOString(),
+        status: 'pending'
+      });
+      setCart([]);
+      showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
+      setCurrentView(ViewState.HOME);
+    } catch (e) {
+      handleFirestoreError(e, 'create', `orders/${orderId}`);
+      showNotification(t('حدث خطأ أثناء إرسال الطلب', 'Error placing order'));
     }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+  const handleReportSubmit = async (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
+    try {
+      await addDoc(collection(db, 'reports'), {
+        ...reportData,
+        date: new Date().toISOString(),
+        isRead: false
+      });
+      showNotification(t('تم إرسال البلاغ بنجاح', 'Report sent successfully'));
+    } catch (e) {
+      handleFirestoreError(e, 'create', 'reports');
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      await deleteDoc(doc(db, 'reports', reportId));
+      showNotification(t('تم حذف البلاغ', 'Report deleted'));
+    } catch (e) {
+      handleFirestoreError(e, 'delete', `reports/${reportId}`);
+    }
+  };
+
+  const handleAddProduct = async (newProduct: Omit<Product, 'id'>) => {
+    try {
+      await addDoc(collection(db, 'products'), newProduct);
+      showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+    } catch (e) {
+      handleFirestoreError(e, 'create', 'products');
+    }
+  };
+
+  const handleRemoveProduct = async (id: string | number) => {
+    try {
+      await deleteDoc(doc(db, 'products', id.toString()));
+      setCart(prev => prev.filter(item => item.id !== id));
+      showNotification(t('تم حذف المنتج بنجاح', 'Product deleted successfully'));
+    } catch (e) {
+      handleFirestoreError(e, 'delete', `products/${id}`);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+    } catch (e) {
+      handleFirestoreError(e, 'update', `orders/${orderId}`);
+    }
+  };
+
+  const handleUpdateBannerText = async (text: string) => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), { bannerText: text }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, 'update', 'settings/global');
+    }
+  };
+
+  const handleUpdatePopupConfig = async (config: PopupConfig) => {
+    try {
+      await setDoc(doc(db, 'settings', 'global'), { popupConfig: config }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, 'update', 'settings/global');
+    }
   };
 
   const renderContent = () => {
+    if (isLoading && currentView === ViewState.HOME) {
+      return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        </div>
+      );
+    }
+
     switch (currentView) {
       case ViewState.ADMIN:
         return (
@@ -185,13 +256,13 @@ function App() {
             products={products}
             orders={orders}
             reports={reports}
-            onAddProduct={handleAddProduct}
-            onRemoveProduct={handleRemoveProduct}
+            onAddProduct={handleAddProduct as any}
+            onRemoveProduct={handleRemoveProduct as any}
             language={language}
             bannerText={bannerText}
-            onUpdateBannerText={setBannerText}
+            onUpdateBannerText={handleUpdateBannerText}
             popupConfig={popupConfig}
-            onUpdatePopupConfig={setPopupConfig}
+            onUpdatePopupConfig={handleUpdatePopupConfig}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteReport={handleDeleteReport}
           />

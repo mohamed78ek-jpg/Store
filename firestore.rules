@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Products
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow get: if true; // Allow customers to track by ID
+      allow list: if isAdmin();
+      allow create: if (
+        request.resource.data.customerName is string &&
+        request.resource.data.customerName.size() <= 100 &&
+        request.resource.data.phoneNumber is string &&
+        request.resource.data.phoneNumber.size() <= 20 &&
+        request.resource.data.status == 'pending'
+      );
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      allow create: if (
+        request.resource.data.name is string &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 1000
+      );
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Settings
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Admins collection - used for Role Based Access Control
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      allow write: if false; // Only manual entry via console for security
+    }
+  }
+}

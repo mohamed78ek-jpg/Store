@@ -1,6 +1,8 @@
-import React from 'react';
-import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle, ShieldCheck, LogIn, LogOut, User } from 'lucide-react';
 import { ViewState, Language } from '../types';
+import { auth } from '../src/lib/firebase';
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -18,6 +20,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLanguageChange
 }) => {
   const isRTL = language === 'ar';
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    return () => unsub();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <>
@@ -123,6 +148,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Spacer to push bottom content down */}
           <div className="mt-auto">
+            {/* User Profile / Auth Section */}
+            <div className="px-4 mb-4">
+              {user ? (
+                <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <User size={20} />
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-bold text-gray-900 truncate">{user.displayName || 'User'}</p>
+                    <button onClick={handleLogout} className="text-xs text-red-600 font-medium flex items-center gap-1 hover:underline">
+                      <LogOut size={12} />
+                      {language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleLogin}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
+                >
+                  <LogIn size={18} />
+                  {language === 'ar' ? 'تسجيل دخول المشرف' : 'Admin Login'}
+                </button>
+              )}
+            </div>
+
             <div className="border-t border-gray-100 my-4"></div>
 
             {/* Admin Link (Moved to bottom) */}
