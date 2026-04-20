@@ -7,9 +7,9 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
-import { HealthControl } from './components/HealthControl';
-import { db, handleFirestoreError } from './src/lib/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError, auth } from './src/lib/firebase';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 
@@ -28,6 +28,22 @@ function App() {
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Auth State & Admin Status
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const adminDoc = await getDoc(doc(db, 'admins', u.uid));
+        setIsAdmin(adminDoc.exists());
+      } else {
+        setIsAdmin(false);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Sync Products
   useEffect(() => {
@@ -39,22 +55,31 @@ function App() {
     return () => unsub();
   }, []);
 
-  // Sync Orders
+  // Sync Orders (Admin Only)
   useEffect(() => {
     const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const ords = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Order));
       setOrders(ords);
+    }, (error) => {
+      // Only log if it's not a permission error or if we're actually trying to be an admin
+      if (!error.message.includes('permission-denied')) {
+        console.warn("Orders listener failed:", error);
+      }
     });
     return () => unsub();
   }, []);
 
-  // Sync Reports
+  // Sync Reports (Admin Only)
   useEffect(() => {
     const q = query(collection(db, 'reports'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const reps = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Report));
       setReports(reps);
+    }, (error) => {
+      if (!error.message.includes('permission-denied')) {
+        console.warn("Reports listener failed:", error);
+      }
     });
     return () => unsub();
   }, []);
@@ -202,6 +227,7 @@ function App() {
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (e) {
       handleFirestoreError(e, 'create', 'products');
+      showNotification(t('فشل إضافة المنتج. قد لا تملك صلاحيات كافية.', 'Failed to add product. You may not have sufficient permissions.'));
     }
   };
 
@@ -256,8 +282,8 @@ function App() {
             products={products}
             orders={orders}
             reports={reports}
-            onAddProduct={handleAddProduct as any}
-            onRemoveProduct={handleRemoveProduct as any}
+            onAddProduct={handleAddProduct}
+            onRemoveProduct={handleRemoveProduct}
             language={language}
             bannerText={bannerText}
             onUpdateBannerText={handleUpdateBannerText}
@@ -293,20 +319,6 @@ function App() {
             onBack={() => setCurrentView(ViewState.HOME)}
             language={language}
           />
-        );
-      case ViewState.HEALTH_CONTROL:
-        return (
-          <div className="max-w-4xl mx-auto px-4 py-8">
-             <HealthControl language={language} />
-             <div className="mt-8 text-center">
-                <button 
-                  onClick={() => setCurrentView(ViewState.HOME)}
-                  className="bg-gray-100 px-6 py-2 rounded-xl text-gray-700 font-bold hover:bg-gray-200 transition-colors"
-                >
-                  {t('العودة للرئيسية', 'Back to Home')}
-                </button>
-             </div>
-          </div>
         );
       case ViewState.HOME:
       default:
@@ -399,6 +411,8 @@ function App() {
         onChangeView={setCurrentView}
         language={language}
         onLanguageChange={setLanguage}
+        user={user}
+        isAdmin={isAdmin}
       />
 
       {/* Ad Popup */}

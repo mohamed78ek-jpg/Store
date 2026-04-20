@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string | number;
   name: string;
   price: number;
   discountPrice?: number;
@@ -51,8 +51,7 @@ export enum ViewState {
   PRODUCT_DETAILS = 'PRODUCT_DETAILS',
   ADMIN = 'ADMIN',
   TRACK_ORDER = 'TRACK_ORDER',
-  REPORT_PROBLEM = 'REPORT_PROBLEM',
-  HEALTH_CONTROL = 'HEALTH_CONTROL'
+  REPORT_PROBLEM = 'REPORT_PROBLEM'
 }
 
 export type Language = 'ar' | 'en';

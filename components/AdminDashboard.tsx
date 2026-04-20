@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
-import { HealthControl } from './HealthControl';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
 
@@ -8,8 +7,8 @@ interface AdminDashboardProps {
   products: Product[];
   orders: Order[];
   reports: Report[];
-  onAddProduct: (product: Product) => void;
-  onRemoveProduct: (id: number) => void;
+  onAddProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  onRemoveProduct: (id: string | number) => Promise<void>;
   language: Language;
   bannerText: string;
   onUpdateBannerText: (text: string) => void;
@@ -39,8 +38,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
-  // Updated tabs state
-  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports' | 'health'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
 
   // Form State
@@ -77,26 +76,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newProduct.name && newProduct.price && newProduct.category && newProduct.image) {
-      
-      const sizesArray = newProduct.sizesString 
-        ? newProduct.sizesString.split(',').map(s => s.trim()).filter(s => s !== '') 
-        : undefined;
+      setIsSubmitting(true);
+      try {
+        const sizesArray = newProduct.sizesString 
+          ? newProduct.sizesString.split(',').map(s => s.trim()).filter(s => s !== '') 
+          : undefined;
 
-      onAddProduct({
-        id: Date.now(),
-        name: newProduct.name,
-        price: Number(newProduct.price),
-        discountPrice: newProduct.discountPrice ? Number(newProduct.discountPrice) : undefined,
-        category: newProduct.category,
-        image: newProduct.image,
-        description: newProduct.description || '',
-        sizes: sizesArray
-      });
-      setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
-      alert(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+        await onAddProduct({
+          name: newProduct.name,
+          price: Number(newProduct.price),
+          discountPrice: newProduct.discountPrice ? Number(newProduct.discountPrice) : undefined,
+          category: newProduct.category,
+          image: newProduct.image,
+          description: newProduct.description || '',
+          sizes: sizesArray
+        });
+        setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
+        alert(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -262,19 +266,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <List size={20} />
           <span className="hidden md:inline">{t('المنتجات', 'Products')}</span>
           <span className="md:hidden">{t('منتجات', 'Products')}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('health')}
-          className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'health' 
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
-              : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
-          }`}
-        >
-          <ShieldCheck size={20} />
-          <span className="hidden md:inline">{t('التحكم الصحي', 'Health Control')}</span>
-          <span className="md:hidden">{t('صحي', 'Health')}</span>
         </button>
 
         <button
@@ -587,9 +578,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg hover:shadow-emerald-500/30 text-lg"
+                disabled={isSubmitting}
+                className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg hover:shadow-emerald-500/30 text-lg disabled:opacity-50"
               >
-                {t('إضافة المنتج', 'Add Product')}
+                {isSubmitting ? t('جاري الإضافة...', 'Adding...') : t('إضافة المنتج', 'Add Product')}
               </button>
             </form>
           </div>
@@ -656,11 +648,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
           </div>
         </div>
-      )}
-
-      {/* 5. HEALTH CONTROL TAB */}
-      {activeTab === 'health' && (
-        <HealthControl language={language} />
       )}
 
       {/* 6. ADS TAB (Formerly Settings) */}
