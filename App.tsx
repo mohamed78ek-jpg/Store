@@ -228,6 +228,7 @@ function App() {
     } catch (e) {
       handleFirestoreError(e, 'create', 'products');
       showNotification(t('فشل إضافة المنتج. قد لا تملك صلاحيات كافية.', 'Failed to add product. You may not have sufficient permissions.'));
+      throw e;
     }
   };
 

@@ -78,7 +78,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newProduct.name && newProduct.price && newProduct.category && newProduct.image) {
+    if (newProduct.name && newProduct.price !== undefined && newProduct.price > 0 && newProduct.category && newProduct.image) {
       setIsSubmitting(true);
       try {
         const sizesArray = newProduct.sizesString 
@@ -97,10 +97,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
         alert(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
       } catch (err) {
-        console.error(err);
+        console.error("Submission failed:", err);
+        alert(t('حدث خطأ أثناء الإضافة. تأكد من صلاحياتك واتصالك بالإنترنت.', 'Error adding product. Check your permissions and internet connection.'));
       } finally {
         setIsSubmitting(false);
       }
+    } else {
+      alert(t('يرجى ملء جميع الحقول المطلوبة (الاسم، السعر > 0، التصنيف، والصورة)', 'Please fill all required fields (Name, Price > 0, Category, Image)'));
     }
   };
 
