@@ -63,9 +63,6 @@ function App() {
     } catch (e: any) {
       if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
         setHasQuotaError(true);
-        if (products.length === 0) {
-          showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
-        }
       }
       setIsLoading(false);
     }
@@ -74,13 +71,30 @@ function App() {
   const handleSeedData = async () => {
     try {
       const { addDoc, collection } = await import('firebase/firestore');
-      let addedCount = 0;
+      showNotification(t('جاري إضافة بيانات عينة...', 'Adding sample data...'));
+      
+      const addedProducts: Product[] = [];
       for (const product of SEED_PRODUCTS) {
-        await addDoc(collection(db, 'products'), product);
-        addedCount++;
+        try {
+          const docRef = await addDoc(collection(db, 'products'), product);
+          addedProducts.push({ ...product, id: docRef.id } as Product);
+        } catch (innerError: any) {
+          if (innerError.message.includes('quota')) break; // Stop if quota hit
+          throw innerError;
+        }
       }
-      showNotification(t(`تم إضافة ${addedCount} منتجات بنجاح.`, `Successfully added ${addedCount} products.`));
-      fetchProducts();
+      
+      if (addedProducts.length > 0) {
+        // Optimistically update local state for immediate visibility
+        setProducts(prev => {
+          const updated = [...addedProducts, ...prev];
+          localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
+          return updated;
+        });
+        showNotification(t(`تم إضافة ${addedProducts.length} منتجات بنجاح.`, `Successfully added ${addedProducts.length} products.`));
+      }
+      
+      fetchProducts(); // Final sync attempt
     } catch (e: any) {
       if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
         showNotification(t('تعذر إضافة البيانات حالياً بسبب تجاوز حد استهلاك البيانات.', 'Could not add data right now due to quota limits.'));
@@ -105,10 +119,6 @@ function App() {
     }, (error) => {
       if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
         setHasQuotaError(true);
-        // If we don't have products, it's a hard error. If we do, it's just a sync failure.
-        if (products.length === 0) {
-           showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
-        }
       }
       console.warn("Products listener failed:", error);
       setIsLoading(false);
@@ -298,7 +308,16 @@ function App() {
 
   const handleAddProduct = async (newProduct: Omit<Product, 'id'>) => {
     try {
-      await addDoc(collection(db, 'products'), newProduct);
+      const docRef = await addDoc(collection(db, 'products'), newProduct);
+      const addedProduct = { ...newProduct, id: docRef.id } as Product;
+      
+      // Manually update state for immediate feedback, especially if listener is hit by quota
+      setProducts(prev => {
+        const updated = [addedProduct, ...prev];
+        localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
+        return updated;
+      });
+
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (e: any) {
       if (e.message.includes('quota') || e.message.includes('Daily database quota')) {
@@ -314,6 +333,14 @@ function App() {
   const handleRemoveProduct = async (id: string | number) => {
     try {
       await deleteDoc(doc(db, 'products', id.toString()));
+      
+      // Manually update state for immediate feedback
+      setProducts(prev => {
+        const updated = prev.filter(p => p.id !== id);
+        localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
+        return updated;
+      });
+      
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح', 'Product deleted successfully'));
     } catch (e) {
