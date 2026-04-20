@@ -334,16 +334,16 @@ function App() {
               </p>
             </div>
 
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
+            {/* Category Filter - Horizontal Scroll on Mobile, Center Flex on Desktop */}
+            <div className="flex overflow-x-auto md:flex-wrap md:justify-center gap-2 mb-10 pb-4 no-scrollbar px-4 sm:px-0">
               {categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  className={`whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
                     selectedCategory === category
-                      ? 'bg-emerald-600 text-white shadow-md transform scale-105'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-emerald-200'
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 transform scale-105'
+                      : 'bg-white text-gray-500 border border-gray-100 hover:border-emerald-300 hover:text-emerald-600 shadow-sm'
                   }`}
                 >
                   {getCategoryLabel(category)}
@@ -351,8 +351,8 @@ function App() {
               ))}
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Grid - Highly Responsive Layout */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8">
               {filteredProducts.map(product => (
                 <ProductCard 
                   key={product.id} 

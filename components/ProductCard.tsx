@@ -24,15 +24,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
   };
 
   return (
-    <div className="group relative flex flex-col bg-white border border-black rounded-[2rem] p-2.5 shadow-sm hover:shadow-md transition-all duration-300 h-full">
+    <div className="group relative flex flex-col bg-white border border-gray-100 rounded-2xl md:rounded-[2rem] p-2 sm:p-3 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
       
       {/* Image Container */}
-      <div className="relative aspect-square rounded-[1.5rem] overflow-hidden mb-2 bg-gray-50">
+      <div className="relative aspect-square rounded-xl md:rounded-[1.5rem] overflow-hidden mb-2 bg-gray-50">
         <img
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-in-out"
           loading="lazy"
+          referrerPolicy="no-referrer"
         />
         {hasDiscount && (
           <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">

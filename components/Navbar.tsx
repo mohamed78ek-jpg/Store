@@ -38,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Search Bar (Center) */}
-          <div className="w-[200px]">
+          <div className="flex-grow max-w-md">
             <div className="relative">
               <input 
                 type="text" 
