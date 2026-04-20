@@ -24,7 +24,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasQuotaError, setHasQuotaError] = useState(false);
   const [language, setLanguage] = useState<Language>('ar');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    const cached = localStorage.getItem('bazzar_products_cache');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [bannerText, setBannerText] = useState('');
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [showAdPopup, setShowAdPopup] = useState(false);
@@ -54,26 +57,38 @@ function App() {
       const snapshot = await getDocs(collection(db, 'products'));
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
       setProducts(prods);
+      localStorage.setItem('bazzar_products_cache', JSON.stringify(prods));
       setIsLoading(false);
     } catch (e: any) {
       if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
         setHasQuotaError(true);
-        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+        if (products.length === 0) {
+          showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+        }
       }
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // If we have cached products, set loading to false immediately but still try to sync
+    if (products.length > 0) {
+      setIsLoading(false);
+    }
+
     const unsub = onSnapshot(collection(db, 'products'), (snapshot) => {
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
       setProducts(prods);
+      localStorage.setItem('bazzar_products_cache', JSON.stringify(prods));
       setIsLoading(false);
       setHasQuotaError(false);
     }, (error) => {
       if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
         setHasQuotaError(true);
-        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+        // If we don't have products, it's a hard error. If we do, it's just a sync failure.
+        if (products.length === 0) {
+           showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+        }
       }
       console.warn("Products listener failed:", error);
       setIsLoading(false);
@@ -395,6 +410,15 @@ function App() {
                 </button>
               ))}
             </div>
+
+            {hasQuotaError && products.length > 0 && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-100 rounded-xl flex items-center gap-3">
+                <div className="h-2 w-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <p className="text-yellow-800 text-sm font-medium">
+                  {t('أنت تشاهد نسخة مخزنة من المنتجات. قد لا تتوفر التحديثات الحالية بسبب ضغط السيرفر.', 'You are viewing a cached version of products. Live updates are currently unavailable due to server load.')}
+                </p>
+              </div>
+            )}
 
             {/* Grid - Highly Responsive Layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8">
