@@ -51,6 +51,12 @@ function App() {
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
       setProducts(prods);
       setIsLoading(false);
+    }, (error) => {
+      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
+        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+      }
+      console.warn("Products listener failed:", error);
+      setIsLoading(false);
     });
     return () => unsub();
   }, []);
@@ -101,6 +107,11 @@ function App() {
         if (data.bannerText !== undefined) setBannerText(data.bannerText);
         if (data.popupConfig) setPopupConfig(data.popupConfig);
       }
+    }, (error) => {
+      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
+        // We already show notification in products listener, but safe to have it here too
+      }
+      console.warn("Settings listener failed:", error);
     });
     return () => unsub();
   }, []);
