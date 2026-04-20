@@ -12,6 +12,7 @@ import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, quer
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
+import { SEED_PRODUCTS } from './constants/seed-data';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -53,7 +54,7 @@ function App() {
   const fetchProducts = async () => {
     setHasQuotaError(false);
     try {
-      const { getDocs, query, collection } = await import('firebase/firestore');
+      const { getDocs, collection } = await import('firebase/firestore');
       const snapshot = await getDocs(collection(db, 'products'));
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
       setProducts(prods);
@@ -67,6 +68,25 @@ function App() {
         }
       }
       setIsLoading(false);
+    }
+  };
+
+  const handleSeedData = async () => {
+    try {
+      const { addDoc, collection } = await import('firebase/firestore');
+      let addedCount = 0;
+      for (const product of SEED_PRODUCTS) {
+        await addDoc(collection(db, 'products'), product);
+        addedCount++;
+      }
+      showNotification(t(`تم إضافة ${addedCount} منتجات بنجاح.`, `Successfully added ${addedCount} products.`));
+      fetchProducts();
+    } catch (e: any) {
+      if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
+        showNotification(t('تعذر إضافة البيانات حالياً بسبب تجاوز حد استهلاك البيانات.', 'Could not add data right now due to quota limits.'));
+      } else {
+        showNotification(t('حدث خطأ أثناء إضافة البيانات.', 'Error occurred while adding data.'));
+      }
     }
   };
 
@@ -352,6 +372,7 @@ function App() {
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteReport={handleDeleteReport}
             onRefreshData={fetchProducts}
+            onSeedData={handleSeedData}
           />
         );
       case ViewState.CART:

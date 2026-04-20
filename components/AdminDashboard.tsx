@@ -17,6 +17,7 @@ interface AdminDashboardProps {
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onDeleteReport: (reportId: string) => void;
   onRefreshData?: () => Promise<void>;
+  onSeedData?: () => Promise<void>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -32,7 +33,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdatePopupConfig,
   onUpdateOrderStatus,
   onDeleteReport,
-  onRefreshData
+  onRefreshData,
+  onSeedData
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -93,7 +95,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Predefined Categories
-  const CATEGORIES = ['رجال', 'أطفال', 'أحذية', 'اكسسوارات'];
+  const CATEGORIES = ['رجال', 'نساء', 'أطفال', 'أحذية', 'اكسسوارات'];
 
   const STATUSES: { value: OrderStatus; labelAr: string; labelEn: string; color: string }[] = [
     { value: 'pending', labelAr: 'قيد الانتظار', labelEn: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
@@ -251,6 +253,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <MonitorPlay size={20} />
               <span className="hidden sm:inline">{t('تحديث', 'Refresh')}</span>
+            </button>
+          )}
+          {onSeedData && (
+            <button 
+              onClick={() => {
+                if (confirm(t('هل أنت متأكد من إضافة بيانات عينة؟ سيؤدي ذلك لإضافة 6 منتجات جديدة.', 'Are you sure you want to add sample data? This will add 6 new products.'))) {
+                  onSeedData();
+                }
+              }}
+              className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors border border-blue-100"
+              title={t('إضافة بيانات عينة', 'Add Sample Data')}
+            >
+              <Banknote size={20} />
+              <span className="hidden sm:inline">{t('إضافة عينة', 'Add Samples')}</span>
             </button>
           )}
           <button 
