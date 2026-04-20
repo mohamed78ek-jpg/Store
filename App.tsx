@@ -45,7 +45,22 @@ function App() {
     return () => unsub();
   }, []);
 
-  // Sync Products
+  // Sync Products & Manual Refresh
+  const fetchProducts = async () => {
+    try {
+      const { getDocs, query, collection } = await import('firebase/firestore');
+      const snapshot = await getDocs(collection(db, 'products'));
+      const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
+      setProducts(prods);
+      setIsLoading(false);
+    } catch (e: any) {
+      if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
+        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
+      }
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'products'), (snapshot) => {
       const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
@@ -245,9 +260,13 @@ function App() {
     try {
       await addDoc(collection(db, 'products'), newProduct);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
-    } catch (e) {
-      handleFirestoreError(e, 'create', 'products');
-      showNotification(t('فشل إضافة المنتج. قد لا تملك صلاحيات كافية.', 'Failed to add product. You may not have sufficient permissions.'));
+    } catch (e: any) {
+      if (e.message.includes('quota') || e.message.includes('Daily database quota')) {
+        showNotification(t('فشل الإضافة: تم الوصول للحد اليومي للبيانات.', 'Addition failed: Daily data quota reached.'));
+      } else {
+        handleFirestoreError(e, 'create', 'products');
+        showNotification(t('فشل إضافة المنتج. تأكد من اتصالك بالإنترنت.', 'Failed to add product. Check your internet connection.'));
+      }
       throw e;
     }
   };
@@ -312,6 +331,7 @@ function App() {
             onUpdatePopupConfig={handleUpdatePopupConfig}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteReport={handleDeleteReport}
+            onRefreshData={fetchProducts}
           />
         );
       case ViewState.CART:

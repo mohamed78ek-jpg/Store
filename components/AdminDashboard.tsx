@@ -16,6 +16,7 @@ interface AdminDashboardProps {
   onUpdatePopupConfig: (config: PopupConfig) => void;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onDeleteReport: (reportId: string) => void;
+  onRefreshData?: () => Promise<void>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -30,7 +31,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   popupConfig,
   onUpdatePopupConfig,
   onUpdateOrderStatus,
-  onDeleteReport
+  onDeleteReport,
+  onRefreshData
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -78,6 +80,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate image size for Base64 (Firestore limit 1MB)
+    if (newProduct.image && newProduct.image.startsWith('data:') && newProduct.image.length > 1000000) {
+      alert(t('حجم الصورة كبير جداً. يرجى استخدام صورة أصغر من 1 ميجابايت.', 'Image size is too large. Please use an image smaller than 1MB.'));
+      return;
+    }
+
     if (newProduct.name && newProduct.price !== undefined && newProduct.price > 0 && newProduct.category && newProduct.image) {
       setIsSubmitting(true);
       try {
@@ -202,13 +211,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
-        <button 
-          onClick={() => setIsAuthenticated(false)}
-          className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
-        >
-          <LogOut size={20} />
-          <span>{t('تسجيل خروج', 'Logout')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onRefreshData && (
+            <button 
+              onClick={() => onRefreshData()}
+              className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition-colors border border-emerald-100"
+              title={t('تحديث البيانات', 'Refresh Data')}
+            >
+              <MonitorPlay size={20} />
+              <span className="hidden sm:inline">{t('تحديث', 'Refresh')}</span>
+            </button>
+          )}
+          <button 
+            onClick={() => setIsAuthenticated(false)}
+            className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            <span>{t('تسجيل خروج', 'Logout')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs - Reorganized */}

@@ -21,6 +21,14 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: any, operation: FirestoreErrorInfo['operationType'], path: string | null = null) {
+  const isQuotaError = error?.message?.includes('quota') || error?.message?.includes('resource-exhausted') || error?.code === 'resource-exhausted';
+  
+  if (isQuotaError) {
+    const quotaMsg = "Daily database quota reached. Firebase is temporarily offline.";
+    console.warn(quotaMsg);
+    throw new Error(quotaMsg);
+  }
+
   if (error?.code === 'permission-denied') {
     const errorInfo: FirestoreErrorInfo = {
       error: error.message,
@@ -43,9 +51,13 @@ export function handleFirestoreError(error: any, operation: FirestoreErrorInfo['
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+  } catch (error: any) {
+    if (error?.message?.includes('quota') || error?.message?.includes('resource-exhausted')) {
+      console.warn("Firebase Quota Limit Reached. Database is temporarily offline.");
+    } else if (error?.message?.includes('offline')) {
+      console.error("Please check your Internet connection or Firebase configuration.");
+    } else {
+      console.warn("Initial Firestore connection test failed (expected if quota is exceeded):", error?.message);
     }
   }
 }
