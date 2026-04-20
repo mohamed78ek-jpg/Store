@@ -16,6 +16,8 @@ interface AdminDashboardProps {
   onUpdatePopupConfig: (config: PopupConfig) => void;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onDeleteReport: (reportId: string) => void;
+  isAuthenticated: boolean;
+  onLogin: (status: boolean) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -30,9 +32,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   popupConfig,
   onUpdatePopupConfig,
   onUpdateOrderStatus,
-  onDeleteReport
+  onDeleteReport,
+  isAuthenticated,
+  onLogin
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -55,6 +58,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'Mohamed' && password === 'Mohamed2003') {
+      onLogin(true);
+      setError('');
+    } else {
+      setError(t('بيانات الدخول غير صحيحة', 'Invalid credentials'));
+    }
+  };
+
+  const handleLogout = () => {
+    onLogin(false);
+  };
+
   // Predefined Categories
   const CATEGORIES = ['رجال', 'أطفال', 'أحذية', 'اكسسوارات'];
 
@@ -65,16 +82,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { value: 'delivered', labelAr: 'تم التوصيل', labelEn: 'Delivered', color: 'bg-emerald-100 text-emerald-800' },
     { value: 'cancelled', labelAr: 'ملغي', labelEn: 'Cancelled', color: 'bg-red-100 text-red-800' },
   ];
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username === 'Mohamed' && password === 'Mohamed2003') {
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError(t('بيانات الدخول غير صحيحة', 'Invalid credentials'));
-    }
-  };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,7 +202,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
         <button 
-          onClick={() => setIsAuthenticated(false)}
+          onClick={handleLogout}
           className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
         >
           <LogOut size={20} />

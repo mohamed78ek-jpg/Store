@@ -1,5 +1,6 @@
 {
-  "name": "Copy of Bazzar",
-  "description": "تجربة تسوق عصرية للملابس العربية والعالمية مدعومة بالذكاء الاصطناعي لتنسيق الأزياء.",
-  "requestFramePermissions": []
+  "name": "Bazzar - Elegant Fashion",
+  "description": "متجر إلكتروني عصري للملابس يوفر تجربة تسوق متكاملة مع لوحة تحكم إدارية ونظام تتبع للطلبات.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

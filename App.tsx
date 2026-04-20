@@ -22,9 +22,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<Language>('ar');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
-  const [bannerText, setBannerText] = useState('أهلاً بكم في متجر الأناقة - خصومات تصل إلى 50% على التشكيلة الجديدة! 🌟 شحن مجاني للطلبات فوق 300 د.م');
+  const [bannerText, setBannerText] = useState('');
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [showAdPopup, setShowAdPopup] = useState(false);
+  const [isManualAdmin, setIsManualAdmin] = useState(false);
 
   // Handle Direction and Language
   useEffect(() => {
@@ -144,7 +145,6 @@ function App() {
       isRead: false
     };
     setReports(prev => [newReport, ...prev]);
-    // Notification is handled in the component via success UI, but we can add one here if needed
   };
 
   const handleDeleteReport = (reportId: string) => {
@@ -155,25 +155,29 @@ function App() {
 
   // Admin Functions
   const handleAddProduct = (newProduct: Product) => {
-    setProducts(prev => [...prev, newProduct]);
+    setProducts(prev => [newProduct, ...prev]);
     showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
   };
 
   const handleRemoveProduct = (id: number) => {
-    const productToDelete = products.find(p => p.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
     
     // Also remove from cart (all sizes of this product)
     setCart(prev => prev.filter(item => item.id !== id));
-    
-    if (productToDelete) {
-      showNotification(t(`تم حذف "${productToDelete.name}"`, `Deleted "${productToDelete.name}"`));
-    }
+    showNotification(t('تم حذف المنتج', 'Product deleted'));
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+  };
+
+  const handleUpdateBannerText = (text: string) => {
+    setBannerText(text);
+  };
+
+  const handleUpdatePopupConfig = (config: PopupConfig) => {
+    setPopupConfig(config);
   };
 
   const renderContent = () => {
@@ -188,11 +192,13 @@ function App() {
             onRemoveProduct={handleRemoveProduct}
             language={language}
             bannerText={bannerText}
-            onUpdateBannerText={setBannerText}
+            onUpdateBannerText={handleUpdateBannerText}
             popupConfig={popupConfig}
-            onUpdatePopupConfig={setPopupConfig}
+            onUpdatePopupConfig={handleUpdatePopupConfig}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteReport={handleDeleteReport}
+            isAuthenticated={isManualAdmin}
+            onLogin={setIsManualAdmin}
           />
         );
       case ViewState.CART:
