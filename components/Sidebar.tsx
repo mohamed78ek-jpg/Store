@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle } from 'lucide-react';
+import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { ViewState, Language } from '../types';
 
 interface SidebarProps {
@@ -82,6 +82,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <span className="font-medium text-lg">
                 {language === 'ar' ? 'تتبع طلباتي' : 'Track Order'}
+              </span>
+              {isRTL ? <ChevronLeft className="mr-auto text-gray-300" size={16} /> : <ChevronRight className="ml-auto text-gray-300" size={16} />}
+            </button>
+
+            {/* Health Control Link */}
+            <button
+              onClick={() => {
+                onChangeView(ViewState.HEALTH_CONTROL);
+                onClose();
+              }}
+              className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all group text-gray-700 hover:text-emerald-600"
+            >
+              <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
+                <ShieldCheck size={20} />
+              </div>
+              <span className="font-medium text-lg">
+                {language === 'ar' ? 'التحكم الصحي' : 'Health Control'}
               </span>
               {isRTL ? <ChevronLeft className="mr-auto text-gray-300" size={16} /> : <ChevronRight className="ml-auto text-gray-300" size={16} />}
             </button>

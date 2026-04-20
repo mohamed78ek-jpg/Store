@@ -1,5 +1,6 @@
 {
   "name": "Copy of Bazzar",
   "description": "تجربة تسوق عصرية للملابس العربية والعالمية مدعومة بالذكاء الاصطناعي لتنسيق الأزياء.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

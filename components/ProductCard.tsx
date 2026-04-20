@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { Product } from '../types';
 import { APP_CURRENCY } from '../constants';
 
@@ -38,6 +39,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
              خصم {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
           </div>
         )}
+        <div className="absolute top-2 left-2 bg-white/80 backdrop-blur-sm text-emerald-600 p-1 rounded-full shadow-sm" title="عينة فحص صحية آمنة">
+           <ShieldCheck size={14} />
+        </div>
       </div>
       
       {/* Content */}

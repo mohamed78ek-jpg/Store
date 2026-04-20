@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
+import { HealthControl } from './HealthControl';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
 
@@ -39,7 +40,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [error, setError] = useState('');
   
   // Updated tabs state
-  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports' | 'health'>('orders');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
 
   // Form State
@@ -261,6 +262,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <List size={20} />
           <span className="hidden md:inline">{t('المنتجات', 'Products')}</span>
           <span className="md:hidden">{t('منتجات', 'Products')}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('health')}
+          className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'health' 
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+              : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          <ShieldCheck size={20} />
+          <span className="hidden md:inline">{t('التحكم الصحي', 'Health Control')}</span>
+          <span className="md:hidden">{t('صحي', 'Health')}</span>
         </button>
 
         <button
@@ -644,7 +658,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* 5. ADS TAB (Formerly Settings) */}
+      {/* 5. HEALTH CONTROL TAB */}
+      {activeTab === 'health' && (
+        <HealthControl language={language} />
+      )}
+
+      {/* 6. ADS TAB (Formerly Settings) */}
       {activeTab === 'settings' && (
         <div className="max-w-3xl mx-auto animate-in fade-in zoom-in duration-300">
            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">

@@ -7,6 +7,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
+import { HealthControl } from './components/HealthControl';
 import { PRODUCTS } from './constants';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
@@ -221,6 +222,20 @@ function App() {
             onBack={() => setCurrentView(ViewState.HOME)}
             language={language}
           />
+        );
+      case ViewState.HEALTH_CONTROL:
+        return (
+          <div className="max-w-4xl mx-auto px-4 py-8">
+             <HealthControl language={language} />
+             <div className="mt-8 text-center">
+                <button 
+                  onClick={() => setCurrentView(ViewState.HOME)}
+                  className="bg-gray-100 px-6 py-2 rounded-xl text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+                >
+                  {t('العودة للرئيسية', 'Back to Home')}
+                </button>
+             </div>
+          </div>
         );
       case ViewState.HOME:
       default:
