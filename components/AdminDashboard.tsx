@@ -57,6 +57,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
+  // Image compression utility
+  const compressImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Target standard size to ensure it fits comfortably in Firestore 1MB
+        const MAX_DIMENSION = 1200;
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height *= MAX_DIMENSION / width;
+            width = MAX_DIMENSION;
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width *= MAX_DIMENSION / height;
+            height = MAX_DIMENSION;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // JPEG format with 0.7 quality provides great compression-to-quality ratio
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    });
+  };
+
   // Predefined Categories
   const CATEGORIES = ['رجال', 'أطفال', 'أحذية', 'اكسسوارات'];
 
@@ -81,12 +116,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate image size for Base64 (Firestore limit 1MB)
-    if (newProduct.image && newProduct.image.startsWith('data:') && newProduct.image.length > 1000000) {
-      alert(t('حجم الصورة كبير جداً. يرجى استخدام صورة أصغر من 1 ميجابايت.', 'Image size is too large. Please use an image smaller than 1MB.'));
-      return;
-    }
-
     if (newProduct.name && newProduct.price !== undefined && newProduct.price > 0 && newProduct.category && newProduct.image) {
       setIsSubmitting(true);
       try {
@@ -120,8 +149,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdatePopupConfig({ ...popupConfig, image: reader.result as string });
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string) as string;
+        onUpdatePopupConfig({ ...popupConfig, image: compressed });
       };
       reader.readAsDataURL(file);
     }
@@ -131,8 +161,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct({ ...newProduct, image: reader.result as string });
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string) as string;
+        setNewProduct({ ...newProduct, image: compressed });
       };
       reader.readAsDataURL(file);
     }
