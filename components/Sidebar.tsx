@@ -1,8 +1,6 @@
 import React from 'react';
-import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle, ShieldCheck, LogIn, LogOut, User } from 'lucide-react';
+import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle } from 'lucide-react';
 import { ViewState, Language } from '../types';
-import { auth } from '../lib/firebase';
-import { signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,8 +8,6 @@ interface SidebarProps {
   onChangeView: (view: ViewState) => void;
   language: Language;
   onLanguageChange: (lang: Language) => void;
-  user: FirebaseUser | null;
-  isAdmin: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -19,19 +15,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose, 
   onChangeView,
   language,
-  onLanguageChange,
-  user,
-  isAdmin
+  onLanguageChange
 }) => {
   const isRTL = language === 'ar';
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   return (
     <>

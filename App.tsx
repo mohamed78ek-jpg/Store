@@ -7,12 +7,9 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
-import { db, handleFirestoreError, auth } from './lib/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc, query, orderBy, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { PRODUCTS } from './constants';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
-import { SEED_PRODUCTS } from './constants/seed-data';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -23,163 +20,11 @@ function App() {
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [hasQuotaError, setHasQuotaError] = useState(false);
   const [language, setLanguage] = useState<Language>('ar');
-  const [products, setProducts] = useState<Product[]>(() => {
-    const cached = localStorage.getItem('bazzar_products_cache');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [bannerText, setBannerText] = useState('');
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [bannerText, setBannerText] = useState('أهلاً بكم في متجر الأناقة - خصومات تصل إلى 50% على التشكيلة الجديدة! 🌟 شحن مجاني للطلبات فوق 300 د.م');
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [showAdPopup, setShowAdPopup] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Auth State & Admin Status
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const adminDoc = await getDoc(doc(db, 'admins', u.uid));
-        setIsAdmin(adminDoc.exists());
-      } else {
-        setIsAdmin(false);
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  // Sync Products & Manual Refresh
-  const fetchProducts = async () => {
-    setHasQuotaError(false);
-    try {
-      const { getDocs, collection } = await import('firebase/firestore');
-      const snapshot = await getDocs(collection(db, 'products'));
-      const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
-      setProducts(prods);
-      localStorage.setItem('bazzar_products_cache', JSON.stringify(prods));
-      setIsLoading(false);
-    } catch (e: any) {
-      if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
-        setHasQuotaError(true);
-      }
-      setIsLoading(false);
-    }
-  };
-
-  const handleSeedData = async () => {
-    try {
-      const { addDoc, collection } = await import('firebase/firestore');
-      showNotification(t('جاري إضافة بيانات عينة...', 'Adding sample data...'));
-      
-      const addedProducts: Product[] = [];
-      for (const product of SEED_PRODUCTS) {
-        try {
-          const docRef = await addDoc(collection(db, 'products'), product);
-          addedProducts.push({ ...product, id: docRef.id } as Product);
-        } catch (innerError: any) {
-          if (innerError.message.includes('quota')) break; // Stop if quota hit
-          throw innerError;
-        }
-      }
-      
-      if (addedProducts.length > 0) {
-        // Optimistically update local state for immediate visibility
-        setProducts(prev => {
-          const updated = [...addedProducts, ...prev];
-          localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
-          return updated;
-        });
-        showNotification(t(`تم إضافة ${addedProducts.length} منتجات بنجاح.`, `Successfully added ${addedProducts.length} products.`));
-      }
-      
-      fetchProducts(); // Final sync attempt
-    } catch (e: any) {
-      if (e.message.includes('quota') || e.message.includes('resource-exhausted')) {
-        showNotification(t('تعذر إضافة البيانات حالياً بسبب تجاوز حد استهلاك البيانات.', 'Could not add data right now due to quota limits.'));
-      } else {
-        showNotification(t('حدث خطأ أثناء إضافة البيانات.', 'Error occurred while adding data.'));
-      }
-    }
-  };
-
-  useEffect(() => {
-    // If we have cached products, set loading to false immediately but still try to sync
-    if (products.length > 0) {
-      setIsLoading(false);
-    }
-
-    const unsub = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const prods = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Product));
-      setProducts(prods);
-      localStorage.setItem('bazzar_products_cache', JSON.stringify(prods));
-      setIsLoading(false);
-      setHasQuotaError(false);
-    }, (error) => {
-      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
-        setHasQuotaError(true);
-      }
-      console.warn("Products listener failed:", error);
-      setIsLoading(false);
-    });
-    return () => unsub();
-  }, []);
-
-  // Sync Orders (Admin Only - Activated only when viewing Admin panel)
-  useEffect(() => {
-    if (currentView !== ViewState.ADMIN) {
-      setOrders([]);
-      return;
-    }
-    const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const ords = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Order));
-      setOrders(ords);
-    }, (error) => {
-      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
-        showNotification(t('تم الوصول للحد الأقصى للبيانات اليومي. يرجى المحاولة غداً.', 'Daily data quota reached. Please try again tomorrow.'));
-      } else if (!error.message.includes('permission-denied')) {
-        console.warn("Orders listener failed:", error);
-      }
-    });
-    return () => unsub();
-  }, [currentView]);
-
-  // Sync Reports (Admin Only - Activated only when viewing Admin panel)
-  useEffect(() => {
-    if (currentView !== ViewState.ADMIN) {
-      setReports([]);
-      return;
-    }
-    const q = query(collection(db, 'reports'), orderBy('date', 'desc'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const reps = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as Report));
-      setReports(reps);
-    }, (error) => {
-      if (!error.message.includes('permission-denied') && !error.message.includes('quota')) {
-        console.warn("Reports listener failed:", error);
-      }
-    });
-    return () => unsub();
-  }, [currentView]);
-
-  // Sync Settings
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.bannerText !== undefined) setBannerText(data.bannerText);
-        if (data.popupConfig) setPopupConfig(data.popupConfig);
-      }
-    }, (error) => {
-      if (error.message.includes('resource-exhausted') || error.message.includes('quota')) {
-        // We already show notification in products listener, but safe to have it here too
-      }
-      console.warn("Settings listener failed:", error);
-    });
-    return () => unsub();
-  }, []);
 
   // Handle Direction and Language
   useEffect(() => {
@@ -199,8 +44,9 @@ function App() {
   // Translation helper
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  // Categories
+  // Extract unique categories from products state
   const categories = useMemo(() => {
+    // We use 'All' as a key, and translate it in the UI
     const allCategories = products.map(p => p.category);
     return ['All', ...new Set(allCategories)];
   }, [products]);
@@ -212,9 +58,13 @@ function App() {
 
   const filteredProducts = useMemo(() => {
     let result = products;
+
+    // Filter by Category
     if (selectedCategory !== 'All') {
       result = result.filter(p => p.category === selectedCategory);
     }
+
+    // Filter by Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(p => 
@@ -222,6 +72,7 @@ function App() {
         p.description.toLowerCase().includes(q)
       );
     }
+
     return result;
   }, [selectedCategory, searchQuery, language, products]);
 
@@ -243,7 +94,7 @@ function App() {
       }
       return [...prev, { 
         ...product, 
-        price: priceToUse,
+        price: priceToUse, // Ensure we use the discounted price if available
         quantity: 1, 
         selectedSize: size,
         cartId: cartId 
@@ -267,121 +118,65 @@ function App() {
     }));
   };
 
-  const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
+  const handlePlaceOrder = (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
+    // Generate 7-digit random number
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
-    try {
-      await setDoc(doc(db, 'orders', orderId), {
-        ...orderData,
-        date: new Date().toISOString(),
-        status: 'pending'
-      });
-      setCart([]);
-      showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
-      setCurrentView(ViewState.HOME);
-    } catch (e) {
-      handleFirestoreError(e, 'create', `orders/${orderId}`);
-      showNotification(t('حدث خطأ أثناء إرسال الطلب', 'Error placing order'));
+    
+    const newOrder: Order = {
+      ...orderData,
+      id: orderId,
+      date: new Date().toISOString(),
+      status: 'pending'
+    };
+    
+    setOrders(prev => [newOrder, ...prev]);
+    setCart([]); // Clear cart
+    showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
+    setCurrentView(ViewState.HOME);
+  };
+
+  // Report Problem Logic
+  const handleReportSubmit = (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
+    const newReport: Report = {
+      ...reportData,
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      isRead: false
+    };
+    setReports(prev => [newReport, ...prev]);
+    // Notification is handled in the component via success UI, but we can add one here if needed
+  };
+
+  const handleDeleteReport = (reportId: string) => {
+    setReports(prev => prev.filter(r => r.id !== reportId));
+    showNotification(t('تم حذف البلاغ', 'Report deleted'));
+  };
+
+
+  // Admin Functions
+  const handleAddProduct = (newProduct: Product) => {
+    setProducts(prev => [...prev, newProduct]);
+    showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+  };
+
+  const handleRemoveProduct = (id: number) => {
+    const productToDelete = products.find(p => p.id === id);
+    setProducts(prev => prev.filter(p => p.id !== id));
+    
+    // Also remove from cart (all sizes of this product)
+    setCart(prev => prev.filter(item => item.id !== id));
+    
+    if (productToDelete) {
+      showNotification(t(`تم حذف "${productToDelete.name}"`, `Deleted "${productToDelete.name}"`));
     }
   };
 
-  const handleReportSubmit = async (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
-    try {
-      await addDoc(collection(db, 'reports'), {
-        ...reportData,
-        date: new Date().toISOString(),
-        isRead: false
-      });
-      showNotification(t('تم إرسال البلاغ بنجاح', 'Report sent successfully'));
-    } catch (e) {
-      handleFirestoreError(e, 'create', 'reports');
-    }
-  };
-
-  const handleDeleteReport = async (reportId: string) => {
-    try {
-      await deleteDoc(doc(db, 'reports', reportId));
-      showNotification(t('تم حذف البلاغ', 'Report deleted'));
-    } catch (e) {
-      handleFirestoreError(e, 'delete', `reports/${reportId}`);
-    }
-  };
-
-  const handleAddProduct = async (newProduct: Omit<Product, 'id'>) => {
-    try {
-      const docRef = await addDoc(collection(db, 'products'), newProduct);
-      const addedProduct = { ...newProduct, id: docRef.id } as Product;
-      
-      // Manually update state for immediate feedback, especially if listener is hit by quota
-      setProducts(prev => {
-        const updated = [addedProduct, ...prev];
-        localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
-        return updated;
-      });
-
-      showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
-    } catch (e: any) {
-      if (e.message.includes('quota') || e.message.includes('Daily database quota')) {
-        showNotification(t('فشل الإضافة: تم الوصول للحد اليومي للبيانات.', 'Addition failed: Daily data quota reached.'));
-      } else {
-        handleFirestoreError(e, 'create', 'products');
-        showNotification(t('فشل إضافة المنتج. تأكد من اتصالك بالإنترنت.', 'Failed to add product. Check your internet connection.'));
-      }
-      throw e;
-    }
-  };
-
-  const handleRemoveProduct = async (id: string | number) => {
-    try {
-      await deleteDoc(doc(db, 'products', id.toString()));
-      
-      // Manually update state for immediate feedback
-      setProducts(prev => {
-        const updated = prev.filter(p => p.id !== id);
-        localStorage.setItem('bazzar_products_cache', JSON.stringify(updated));
-        return updated;
-      });
-      
-      setCart(prev => prev.filter(item => item.id !== id));
-      showNotification(t('تم حذف المنتج بنجاح', 'Product deleted successfully'));
-    } catch (e) {
-      handleFirestoreError(e, 'delete', `products/${id}`);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-    try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
-      showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
-    } catch (e) {
-      handleFirestoreError(e, 'update', `orders/${orderId}`);
-    }
-  };
-
-  const handleUpdateBannerText = async (text: string) => {
-    try {
-      await setDoc(doc(db, 'settings', 'global'), { bannerText: text }, { merge: true });
-    } catch (e) {
-      handleFirestoreError(e, 'update', 'settings/global');
-    }
-  };
-
-  const handleUpdatePopupConfig = async (config: PopupConfig) => {
-    try {
-      await setDoc(doc(db, 'settings', 'global'), { popupConfig: config }, { merge: true });
-    } catch (e) {
-      handleFirestoreError(e, 'update', 'settings/global');
-    }
+  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
   };
 
   const renderContent = () => {
-    if (isLoading && currentView === ViewState.HOME) {
-      return (
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-        </div>
-      );
-    }
-
     switch (currentView) {
       case ViewState.ADMIN:
         return (
@@ -393,13 +188,11 @@ function App() {
             onRemoveProduct={handleRemoveProduct}
             language={language}
             bannerText={bannerText}
-            onUpdateBannerText={handleUpdateBannerText}
+            onUpdateBannerText={setBannerText}
             popupConfig={popupConfig}
-            onUpdatePopupConfig={handleUpdatePopupConfig}
+            onUpdatePopupConfig={setPopupConfig}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteReport={handleDeleteReport}
-            onRefreshData={fetchProducts}
-            onSeedData={handleSeedData}
           />
         );
       case ViewState.CART:
@@ -442,16 +235,16 @@ function App() {
               </p>
             </div>
 
-            {/* Category Filter - Horizontal Scroll on Mobile, Center Flex on Desktop */}
-            <div className="flex overflow-x-auto md:flex-wrap md:justify-center gap-2 mb-10 pb-4 no-scrollbar px-4 sm:px-0">
+            {/* Category Filter */}
+            <div className="flex flex-wrap justify-center gap-2 mb-10">
               {categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                     selectedCategory === category
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 transform scale-105'
-                      : 'bg-white text-gray-500 border border-gray-100 hover:border-emerald-300 hover:text-emerald-600 shadow-sm'
+                      ? 'bg-emerald-600 text-white shadow-md transform scale-105'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-emerald-200'
                   }`}
                 >
                   {getCategoryLabel(category)}
@@ -459,8 +252,8 @@ function App() {
               ))}
             </div>
 
-            {/* Grid - Highly Responsive Layout */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-6 lg:gap-8">
+            {/* Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {filteredProducts.map(product => (
                 <ProductCard 
                   key={product.id} 
@@ -472,16 +265,16 @@ function App() {
               {filteredProducts.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center gap-4">
-                    <Search size={48} className="text-gray-200" />
-                    <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
-                    {(selectedCategory !== 'All' || searchQuery) && (
-                      <button 
-                        onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
-                        className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
-                      >
-                        {t('عرض كل المنتجات', 'Show all products')}
-                      </button>
-                    )}
+                     <Search size={48} className="text-gray-200" />
+                     <p>{t('لا توجد منتجات تطابق بحثك.', 'No products found matching your search.')}</p>
+                     {(selectedCategory !== 'All' || searchQuery) && (
+                       <button 
+                         onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+                         className="text-emerald-600 hover:text-emerald-700 font-bold text-sm"
+                       >
+                         {t('عرض كل المنتجات', 'Show all products')}
+                       </button>
+                     )}
                   </div>
                 </div>
               )}
@@ -520,8 +313,6 @@ function App() {
         onChangeView={setCurrentView}
         language={language}
         onLanguageChange={setLanguage}
-        user={user}
-        isAdmin={isAdmin}
       />
 
       {/* Ad Popup */}
