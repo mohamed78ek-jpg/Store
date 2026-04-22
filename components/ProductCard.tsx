@@ -5,13 +5,16 @@ import { APP_CURRENCY } from '../constants';
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product, size?: string) => void;
+  language: Language;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-  // Select first size by default if available
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, language }) => {
+  // ... existing code ...
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes && product.sizes.length > 0 ? product.sizes[0] : undefined
   );
+
+  const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
   // Determine prices
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
@@ -35,7 +38,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
         />
         {hasDiscount && (
           <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-sm">
-             خصم {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
+             {t('خصم', 'Sale')} {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
           </div>
         )}
       </div>
@@ -83,7 +86,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
               onClick={handleAddToCart}
               className="w-full h-full bg-[#22c55e] hover:bg-emerald-600 text-white text-sm sm:text-base font-bold rounded-full transition-colors shadow-sm active:scale-95 font-tajawal flex items-center justify-center"
             >
-              أضف للسلة
+              {t('أضف للسلة', 'Add to Cart')}
             </button>
         </div>
       </div>

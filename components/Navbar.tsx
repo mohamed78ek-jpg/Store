@@ -45,17 +45,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={language === 'ar' ? 'بحث...' : 'Search...'}
-                className="w-full py-2 px-10 rounded-full border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all text-gray-700 placeholder-gray-400 text-sm"
+                className="w-full py-2 ps-10 pe-4 rounded-full border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all text-gray-700 placeholder-gray-400 text-sm"
               />
               <Search 
-                className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${language === 'ar' ? 'right-3' : 'left-3'}`} 
+                className="absolute top-1/2 -translate-y-1/2 text-gray-400 inset-inline-start-3" 
                 size={16} 
               />
             </div>
           </div>
 
           {/* Icons (Cart, Menu) */}
-          <div className="flex items-center space-x-2 space-x-reverse flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             
             <button 
               className="relative p-2 text-gray-500 hover:text-emerald-600 transition-colors"

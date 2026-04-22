@@ -128,8 +128,14 @@ function App() {
   }, [products]);
 
   const getCategoryLabel = (cat: string) => {
-    if (cat === 'All') return t('الكل', 'All');
-    return cat;
+    switch (cat) {
+      case 'All': return t('الكل', 'All');
+      case 'رجال': return t('رجال', 'Men');
+      case 'أطفال': return t('أطفال', 'Children');
+      case 'أحذية': return t('أحذية', 'Shoes');
+      case 'اكسسوارات': return t('اكسسوارات', 'Accessories');
+      default: return cat;
+    }
   };
 
   const filteredProducts = useMemo(() => {
@@ -206,7 +212,7 @@ function App() {
     try {
       await setDoc(doc(db, 'orders', orderId), newOrder);
       setCart([]); 
-      showNotification(t('تم إرسال طلبك بنجاح!', 'Order placed successfully!'));
+      showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (err) {
       console.error("Order failed:", err);
@@ -373,6 +379,7 @@ function App() {
                   key={product.id} 
                   product={product} 
                   onAddToCart={handleAddToCart} 
+                  language={language}
                 />
               ))}
               
@@ -399,7 +406,10 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 pb-0 font-${language === 'ar' ? 'tajawal' : 'sans'} flex flex-col`}>
+    <div 
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      className={`min-h-screen bg-gray-50 pb-0 font-${language === 'ar' ? 'tajawal' : 'sans'} flex flex-col`}
+    >
       {/* Top Banner */}
       {bannerText && (
         <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
