@@ -264,8 +264,9 @@ function App() {
       // Also remove from cart (local only as cart isn't in FB)
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
-    } catch (err) {
-      showNotification(t('فشل حذف المنتج', 'Failed to delete product'));
+    } catch (err: any) {
+      console.error("Delete product failed:", err);
+      showNotification(t(`فشل حذف المنتج: ${err.message}`, `Failed to delete product: ${err.message}`));
     }
   };
 
@@ -313,6 +314,7 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
+            currentUser={currentUser}
           />
         );
       case ViewState.CART:
