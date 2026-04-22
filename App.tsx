@@ -10,6 +10,9 @@ import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { PRODUCTS } from './constants';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -20,50 +23,78 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<Language>('ar');
   
-  // Local State (Replaced Firebase)
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('bazaar_products');
-    return saved ? JSON.parse(saved) : PRODUCTS;
-  });
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('bazaar_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [reports, setReports] = useState<Report[]>(() => {
-    const saved = localStorage.getItem('bazaar_reports');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [bannerText, setBannerText] = useState(() => {
-    return localStorage.getItem('bazaar_bannerText') || 'أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م';
-  });
-  const [popupConfig, setPopupConfig] = useState<PopupConfig>(() => {
-    const saved = localStorage.getItem('bazaar_popupConfig');
-    return saved ? JSON.parse(saved) : { isActive: false, image: '' };
-  });
+  // Firebase State
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [bannerText, setBannerText] = useState('أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م');
+  const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
 
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
 
-  // Persistence to LocalStorage
+  // Auth Listener
   useEffect(() => {
-    localStorage.setItem('bazaar_products', JSON.stringify(products));
-  }, [products]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('bazaar_orders', JSON.stringify(orders));
-  }, [orders]);
+  const isAdminUser = useMemo(() => {
+    return currentUser?.email === 'mohamederrabani951@gmail.com';
+  }, [currentUser]);
 
+  // Firestore Data Listeners
   useEffect(() => {
-    localStorage.setItem('bazaar_reports', JSON.stringify(reports));
-  }, [reports]);
+    // Public Listeners
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      if (data.length > 0) setProducts(data);
+    }, (error) => {
+      console.error("Products listener error:", error);
+    });
 
-  useEffect(() => {
-    localStorage.setItem('bazaar_bannerText', bannerText);
-  }, [bannerText]);
+    const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (doc) => {
+      if (doc.exists()) {
+        const config = doc.data();
+        if (config.bannerText) setBannerText(config.bannerText);
+        if (config.popupConfig) setPopupConfig(config.popupConfig);
+      }
+    }, (error) => {
+      console.error("Config listener error:", error);
+    });
 
-  useEffect(() => {
-    localStorage.setItem('bazaar_popupConfig', JSON.stringify(popupConfig));
-  }, [popupConfig]);
+    // Admin-Only Listeners
+    let unsubOrders: (() => void) | null = null;
+    let unsubReports: (() => void) | null = null;
+
+    if (isAdminUser) {
+      unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      }, (error) => {
+        console.error("Orders listener error:", error);
+      });
+
+      unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
+        setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
+      }, (error) => {
+        console.error("Reports listener error:", error);
+      });
+    } else {
+      // Clear sensitive data for non-admins
+      setOrders([]);
+      setReports([]);
+    }
+
+    return () => {
+      unsubProducts();
+      unsubConfig();
+      if (unsubOrders) unsubOrders();
+      if (unsubReports) unsubReports();
+    };
+  }, [isAdminUser]);
 
   // Handle Direction and Language
   useEffect(() => {
@@ -157,7 +188,7 @@ function App() {
     }));
   };
 
-  const handlePlaceOrder = (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
+  const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
     const newOrder: Order = {
       ...orderData,
@@ -166,13 +197,17 @@ function App() {
       status: 'pending'
     };
     
-    setOrders(prev => [newOrder, ...prev]);
-    setCart([]); 
-    showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
-    setCurrentView(ViewState.HOME);
+    try {
+      await setDoc(doc(db, 'orders', orderId), newOrder);
+      setCart([]); 
+      showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
+      setCurrentView(ViewState.HOME);
+    } catch (error: any) {
+      showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
+    }
   };
 
-  const handleReportSubmit = (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
+  const handleReportSubmit = async (reportData: Omit<Report, 'id' | 'date' | 'isRead'>) => {
     const reportId = Date.now().toString();
     const newReport: Report = {
       ...reportData,
@@ -180,38 +215,66 @@ function App() {
       date: new Date().toISOString(),
       isRead: false
     };
-    setReports(prev => [newReport, ...prev]);
-    showNotification(t('تم إرسال بلاغك بنجاح', 'Report submitted successfully'));
+    try {
+      await setDoc(doc(db, 'reports', reportId), newReport);
+      showNotification(t('تم إرسال بلاغك بنجاح', 'Report submitted successfully'));
+    } catch (error: any) {
+      showNotification(t('فشل في إرسال البلاغ', 'Failed to submit report'));
+    }
   };
 
-  const handleDeleteReport = (reportId: string) => {
-    setReports(prev => prev.filter(r => r.id !== reportId));
-    showNotification(t('تم حذف البلاغ', 'Report deleted'));
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      await deleteDoc(doc(db, 'reports', reportId));
+      showNotification(t('تم حذف البلاغ', 'Report deleted'));
+    } catch (error: any) {
+      showNotification(t('فشل في حذف البلاغ', 'Failed to delete report'));
+    }
   };
 
   // Admin Functions
-  const handleAddProduct = (productData: Product) => {
-    setProducts(prev => [productData, ...prev]);
-    showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+  const handleAddProduct = async (productData: Product) => {
+    try {
+      await setDoc(doc(db, 'products', productData.id), productData);
+      showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+    } catch (error: any) {
+      showNotification(t('فشل في إضافة المنتج: تأكد من تسجيل دخولك بجوجل', 'Failed to add product: Make sure you are logged in with Google'));
+    }
   };
 
-  const handleRemoveProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    setCart(prev => prev.filter(item => item.id !== id));
-    showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
+  const handleRemoveProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      setCart(prev => prev.filter(item => item.id !== id));
+      showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
+    } catch (error: any) {
+      showNotification(t('فشل في حذف المنتج: تأكد من تسجيل دخولك بجوجل', 'Failed to delete product: Make sure you are logged in with Google'));
+    }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      showNotification(t('تم تحديث حالة الطلب بنجاح', 'Order status updated successfully'));
+    } catch (error: any) {
+      showNotification(t('فشل في تحديث حالة الطلب', 'Failed to update order status'));
+    }
   };
 
-  const handleUpdateBannerText = (text: string) => {
-    setBannerText(text);
+  const handleUpdateBannerText = async (text: string) => {
+    try {
+      await setDoc(doc(db, 'siteConfig', 'global'), { bannerText: text }, { merge: true });
+    } catch (error) {
+      console.error("Failed to update banner text");
+    }
   };
 
-  const handleUpdatePopupConfig = (config: PopupConfig) => {
-    setPopupConfig(config);
+  const handleUpdatePopupConfig = async (config: PopupConfig) => {
+    try {
+      await setDoc(doc(db, 'siteConfig', 'global'), { popupConfig: config }, { merge: true });
+    } catch (error) {
+      console.error("Failed to update popup config");
+    }
   };
 
   const renderContent = () => {
@@ -233,6 +296,7 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
+            currentUser={currentUser}
           />
         );
       case ViewState.CART:
