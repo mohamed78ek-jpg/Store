@@ -74,7 +74,7 @@ export const logout = async () => {
 // Check connection
 export const checkFirebaseConnection = async () => {
   try {
-    const testDoc = doc(db, '_connection_test', 'test');
+    const testDoc = doc(db, 'siteConfig', 'global');
     await getDocFromServer(testDoc);
     return true;
   } catch (error: any) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Product } from '../types';
+import { Product, Language } from '../types';
 import { APP_CURRENCY } from '../constants';
 
 interface ProductCardProps {
