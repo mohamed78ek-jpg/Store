@@ -52,18 +52,21 @@ function App() {
 
   // 2. Real-time Database Listeners
   useEffect(() => {
-    // 2a. Public Listeners (Products & Config)
+    // 2a. Public Product Listener - Runs once on mount
     const qProducts = query(collection(db, 'products'), orderBy('id', 'desc'));
     const unsubProducts = onSnapshot(qProducts, (snap) => {
       const dbProducts = snap.docs.map(doc => doc.data() as Product);
-      // We set the products from the DB. 
-      // Note: If empty, it's a valid empty store state.
-      // Seeding via Admin is the preferred way to populate a new store.
-      setProducts(dbProducts);
+      
+      if (snap.empty) {
+        // If DB is totally empty, show defaults as a starting point
+        setProducts(PRODUCTS);
+      } else {
+        // As soon as there is data in DB, use it exclusively
+        setProducts(dbProducts);
+      }
     }, (error) => {
       console.error("Products listener error:", error);
-      // Only use constants as a very worst-case fallback 
-      if (products.length === 0) setProducts(PRODUCTS);
+      setProducts(PRODUCTS);
     });
 
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snap) => {
@@ -74,7 +77,14 @@ function App() {
       }
     });
 
-    // 2b. Admin Listeners (Orders & Reports)
+    return () => {
+      unsubProducts();
+      unsubConfig();
+    };
+  }, []);
+
+  // 2b. Admin-only Listeners
+  useEffect(() => {
     let unsubOrders = () => {};
     let unsubReports = () => {};
 
@@ -91,12 +101,10 @@ function App() {
     }
 
     return () => {
-      unsubProducts();
-      unsubConfig();
       unsubOrders();
       unsubReports();
     };
-  }, [currentUser, isManualAdmin]);
+  }, [isManualAdmin, currentUser]);
 
   // Handle Direction and Language
   useEffect(() => {
