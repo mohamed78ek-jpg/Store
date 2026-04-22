@@ -7,7 +7,6 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
 import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
-import { PRODUCTS } from './constants';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { db, auth } from './lib/firebase';
@@ -57,16 +56,10 @@ function App() {
     const unsubProducts = onSnapshot(qProducts, (snap) => {
       const dbProducts = snap.docs.map(doc => doc.data() as Product);
       
-      if (snap.empty) {
-        // If DB is totally empty, show defaults as a starting point
-        setProducts(PRODUCTS);
-      } else {
-        // As soon as there is data in DB, use it exclusively
-        setProducts(dbProducts);
-      }
+      // Removed the fallback to default products to respect user's manual deletions
+      setProducts(dbProducts);
     }, (error) => {
       console.error("Products listener error:", error);
-      setProducts(PRODUCTS);
     });
 
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snap) => {
@@ -256,17 +249,6 @@ function App() {
     }
   };
 
-  const handleSeedProducts = async () => {
-    try {
-      const promises = PRODUCTS.map(p => setDoc(doc(db, 'products', p.id.toString()), p));
-      await Promise.all(promises);
-      showNotification(t('تم تجهيز المتجر بالمنتجات الافتراضية', 'Store seeded with default products'));
-    } catch (err) {
-      console.error("Seeding failed:", err);
-      showNotification(t('فشل تجهيز المتجر', 'Failed to seed store'));
-    }
-  };
-
   const handleRemoveProduct = async (id: number) => {
     try {
       await deleteDoc(doc(db, 'products', id.toString()));
@@ -313,7 +295,6 @@ function App() {
             reports={reports}
             onAddProduct={handleAddProduct}
             onRemoveProduct={handleRemoveProduct}
-            onSeedProducts={handleSeedProducts}
             language={language}
             bannerText={bannerText}
             onUpdateBannerText={handleUpdateBannerText}
