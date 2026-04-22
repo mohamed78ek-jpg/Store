@@ -47,19 +47,23 @@ function App() {
     });
   }, []);
 
+  const [showAdPopup, setShowAdPopup] = useState(false);
+  const [isManualAdmin, setIsManualAdmin] = useState(false);
+
   // 2. Real-time Database Listeners
   useEffect(() => {
     // 2a. Public Listeners (Products & Config)
     const qProducts = query(collection(db, 'products'), orderBy('id', 'desc'));
     const unsubProducts = onSnapshot(qProducts, (snap) => {
-      if (snap.empty) {
-        setProducts(PRODUCTS);
-      } else {
-        setProducts(snap.docs.map(doc => doc.data() as Product));
-      }
+      const dbProducts = snap.docs.map(doc => doc.data() as Product);
+      // We set the products from the DB. 
+      // Note: If empty, it's a valid empty store state.
+      // Seeding via Admin is the preferred way to populate a new store.
+      setProducts(dbProducts);
     }, (error) => {
-      console.error("Products fallback error:", error);
-      setProducts(PRODUCTS);
+      console.error("Products listener error:", error);
+      // Only use constants as a very worst-case fallback 
+      if (products.length === 0) setProducts(PRODUCTS);
     });
 
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snap) => {
@@ -92,10 +96,7 @@ function App() {
       unsubOrders();
       unsubReports();
     };
-  }, [currentUser]);
-
-  const [showAdPopup, setShowAdPopup] = useState(false);
-  const [isManualAdmin, setIsManualAdmin] = useState(false);
+  }, [currentUser, isManualAdmin]);
 
   // Handle Direction and Language
   useEffect(() => {
@@ -237,12 +238,24 @@ function App() {
 
 
   // Admin Functions
-  const handleAddProduct = async (newProduct: Product) => {
+  const handleAddProduct = async (productData: Product) => {
     try {
-      await setDoc(doc(db, 'products', newProduct.id.toString()), newProduct);
+      await setDoc(doc(db, 'products', productData.id.toString()), productData);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (err) {
+      console.error("Add product failed:", err);
       showNotification(t('فشل إضافة المنتج', 'Failed to add product'));
+    }
+  };
+
+  const handleSeedProducts = async () => {
+    try {
+      const promises = PRODUCTS.map(p => setDoc(doc(db, 'products', p.id.toString()), p));
+      await Promise.all(promises);
+      showNotification(t('تم تجهيز المتجر بالمنتجات الافتراضية', 'Store seeded with default products'));
+    } catch (err) {
+      console.error("Seeding failed:", err);
+      showNotification(t('فشل تجهيز المتجر', 'Failed to seed store'));
     }
   };
 
@@ -292,6 +305,7 @@ function App() {
             reports={reports}
             onAddProduct={handleAddProduct}
             onRemoveProduct={handleRemoveProduct}
+            onSeedProducts={handleSeedProducts}
             language={language}
             bannerText={bannerText}
             onUpdateBannerText={handleUpdateBannerText}

@@ -10,6 +10,7 @@ interface AdminDashboardProps {
   reports: Report[];
   onAddProduct: (product: Product) => void;
   onRemoveProduct: (id: number) => void;
+  onSeedProducts: () => void;
   language: Language;
   bannerText: string;
   onUpdateBannerText: (text: string) => void;
@@ -27,6 +28,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   reports,
   onAddProduct, 
   onRemoveProduct,
+  onSeedProducts,
   language,
   bannerText,
   onUpdateBannerText,
@@ -458,10 +460,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'add_product' && (
         <div className="max-w-3xl mx-auto animate-in fade-in zoom-in duration-300">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
-              <Plus size={24} className="text-emerald-600" />
-              {t('إضافة منتج جديد', 'Add New Product')}
-            </h2>
+            <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Plus size={24} className="text-emerald-600" />
+                {t('إضافة منتج جديد', 'Add New Product')}
+              </h2>
+              {products.length === 0 && (
+                <button
+                  type="button"
+                  onClick={onSeedProducts}
+                  className="text-xs font-bold bg-amber-50 text-amber-700 px-4 py-2 rounded-xl border border-amber-200 hover:bg-amber-100 transition-all flex items-center gap-2"
+                >
+                  <Package size={16} />
+                  {t('تعبئة بالبيانات الافتراضية', 'Seed Defaults')}
+                </button>
+              )}
+            </div>
             
             <form onSubmit={handleAddSubmit} className="space-y-6">
               <div>
@@ -654,9 +668,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             ))}
             
             {products.length === 0 && (
-              <div className="p-16 text-center text-gray-500">
-                <Package size={64} className="mb-4 mx-auto text-gray-200" />
-                {t('لا توجد منتجات حالياً', 'No products available')}
+              <div className="p-16 text-center flex flex-col items-center justify-center">
+                <Package size={64} className="mb-4 text-gray-200" />
+                <p className="text-gray-500 mb-6">{t('المتجر فارغ حالياً، يمكنك إضافة منتجات جديدة أو تعبئته بالمنتجات الافتراضية.', 'The store is currently empty. You can add new products or seed it with defaults.')}</p>
+                <button
+                   onClick={onSeedProducts}
+                   className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg flex items-center gap-2"
+                >
+                  <PlusCircle size={20} />
+                  {t('تعبئة بالمنتجات الافتراضية الآن', 'Seed Default Products Now')}
+                </button>
               </div>
             )}
           </div>
