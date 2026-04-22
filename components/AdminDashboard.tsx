@@ -9,7 +9,7 @@ interface AdminDashboardProps {
   orders: Order[];
   reports: Report[];
   onAddProduct: (product: Product) => void;
-  onRemoveProduct: (id: number) => void;
+  onRemoveProduct: (id: string) => void;
   language: Language;
   bannerText: string;
   onUpdateBannerText: (text: string) => void;
@@ -95,7 +95,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         : undefined;
 
       onAddProduct({
-        id: Date.now(),
+        id: Date.now().toString(),
         name: newProduct.name,
         price: Number(newProduct.price),
         discountPrice: newProduct.discountPrice ? Number(newProduct.discountPrice) : undefined,

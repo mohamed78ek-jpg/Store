@@ -54,9 +54,12 @@ function App() {
     // 2a. Public Product Listener - Runs once on mount
     const qProducts = query(collection(db, 'products'), orderBy('id', 'desc'));
     const unsubProducts = onSnapshot(qProducts, (snap) => {
-      const dbProducts = snap.docs.map(doc => doc.data() as Product);
+      const dbProducts = snap.docs.map(doc => {
+        const data = doc.data() as any;
+        // Use the Firestore document ID as the unique key
+        return { ...data, id: doc.id } as Product;
+      });
       
-      // Removed the fallback to default products to respect user's manual deletions
       setProducts(dbProducts);
     }, (error) => {
       console.error("Products listener error:", error);
@@ -249,12 +252,12 @@ function App() {
     }
   };
 
-  const handleRemoveProduct = async (id: number) => {
+  const handleRemoveProduct = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'products', id.toString()));
+      await deleteDoc(doc(db, 'products', id));
       // Also remove from cart (local only as cart isn't in FB)
       setCart(prev => prev.filter(item => item.id !== id));
-      showNotification(t('تم حذف المنتج', 'Product deleted'));
+      showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
     } catch (err) {
       showNotification(t('فشل حذف المنتج', 'Failed to delete product'));
     }

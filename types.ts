@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string; // Changed to string for Firestore document ID compatibility
   name: string;
   price: number;
   discountPrice?: number;
