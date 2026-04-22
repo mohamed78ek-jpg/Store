@@ -19,7 +19,6 @@ interface AdminDashboardProps {
   onDeleteReport: (reportId: string) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
-  currentUser: any;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -36,17 +35,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateOrderStatus,
   onDeleteReport,
   isAuthenticated,
-  onLogin,
-  currentUser
+  onLogin
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   
-  const isAdminFirebase = currentUser?.email === 'mohamederrabani951@gmail.com';
-  const isFullyAuth = isAuthenticated && isAdminFirebase;
+  const isFullyAuth = isAuthenticated;
 
   // Updated tabs state
   const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
@@ -75,21 +71,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleFirebaseLogin = async () => {
-    setIsLoadingAuth(true);
-    try {
-      await loginWithGoogle();
-      setError('');
-    } catch (err: any) {
-      setError(t('فشل تسجيل الدخول عبر جوجل', 'Google Login failed'));
-    } finally {
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const handleFullLogout = async () => {
+  const handleFullLogout = () => {
     onLogin(false);
-    await logout();
   };
 
   // Predefined Categories
@@ -173,76 +156,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
              <p className="text-gray-500 mt-2">{t('يرجى تسجيل الدخول للمتابعة', 'Please login to continue')}</p>
            </div>
 
-           {!isAuthenticated ? (
-              <form onSubmit={handleManualLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    dir="ltr"
-                  />
-                </div>
-                
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('كلمة المرور', 'Password')}</label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    dir="ltr"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute top-[34px] right-3 text-gray-400 hover:text-gray-600"
-                    style={{ right: language === 'ar' ? 'auto' : '0.75rem', left: language === 'ar' ? '0.75rem' : 'auto' }}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-
-                {error && <p className="text-red-500 text-sm">{error}</p>}
-
+            <form onSubmit={handleManualLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  dir="ltr"
+                />
+              </div>
+              
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('كلمة المرور', 'Password')}</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  dir="ltr"
+                />
                 <button
-                  type="submit"
-                  className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute top-[34px] right-3 text-gray-400 hover:text-gray-600"
+                  style={{ right: language === 'ar' ? 'auto' : '0.75rem', left: language === 'ar' ? '0.75rem' : 'auto' }}
                 >
-                  {t('دخول النظام', 'Login System')}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
-              </form>
-           ) : (
-             <div className="space-y-4">
-                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center gap-3">
-                  <CheckCircle className="text-emerald-600" size={24} />
-                  <div>
-                    <p className="text-sm font-bold text-emerald-900">{t('تم التحقق من النظام', 'System Verified')}</p>
-                    <p className="text-xs text-emerald-700">{t('الآن سجل الدخول ببريد Firebase المعتمد', 'Now login with authorized Firebase email')}</p>
-                  </div>
-                </div>
+              </div>
 
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                <button
-                  onClick={handleFirebaseLogin}
-                  disabled={isLoadingAuth}
-                  className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                >
-                  <Mail size={20} />
-                  {isLoadingAuth ? t('جاري التوصيل...', 'Connecting...') : t('تسجيل دخول Firebase (Google)', 'Firebase Login (Google)')}
-                </button>
-
-                <button
-                   onClick={() => onLogin(false)}
-                   className="w-full text-gray-500 text-sm hover:underline"
-                >
-                  {t('رجوع', 'Go Back')}
-                </button>
-             </div>
-           )}
+              <button
+                type="submit"
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
+              >
+                {t('دخول', 'Login')}
+              </button>
+            </form>
         </div>
       </div>
     );

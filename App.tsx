@@ -41,7 +41,6 @@ function App() {
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // 1. Auth Listener
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -75,9 +74,7 @@ function App() {
     let unsubOrders = () => {};
     let unsubReports = () => {};
 
-    const isAdminEmail = currentUser?.email === 'mohamederrabani951@gmail.com';
-
-    if (isAdminEmail) {
+    if (isManualAdmin) {
       const qOrders = query(collection(db, 'orders'), orderBy('date', 'desc'));
       unsubOrders = onSnapshot(qOrders, (snap) => {
         setOrders(snap.docs.map(doc => doc.data() as Order));
@@ -304,7 +301,6 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
-            currentUser={currentUser}
           />
         );
       case ViewState.CART:
@@ -365,7 +361,7 @@ function App() {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {filteredProducts.map(product => (
                 <ProductCard 
                   key={product.id} 
