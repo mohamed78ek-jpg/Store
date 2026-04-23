@@ -235,24 +235,40 @@ function App() {
   };
 
   const handleRemoveProduct = async (id: string) => {
+    if (!id) return;
     try {
-      await deleteDoc(doc(db, 'products', id));
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p.id !== id));
       setCart(prev => prev.filter(item => item.id !== id));
+
+      await deleteDoc(doc(db, 'products', id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
     } catch (error: any) {
+      console.error("Delete product error:", error);
       showNotification(t('فشل في حذف المنتج', 'Failed to delete product'));
     }
   };
 
   const handleClearAllProducts = async () => {
+    if (products.length === 0) {
+      showNotification(t('لا يوجد منتجات لحذفها', 'No products to delete'));
+      return;
+    }
+    
     try {
       const batch = writeBatch(db);
       products.forEach((product) => {
         batch.delete(doc(db, 'products', product.id));
       });
+      
+      // Optimistic update
+      setProducts([]);
+      setCart([]);
+      
       await batch.commit();
       showNotification(t('تم حذف جميع المنتجات بنجاح', 'All products deleted successfully'));
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Clear all products error:", error);
       showNotification(t('فشل في حذف المنتجات', 'Failed to delete products'));
     }
   };
