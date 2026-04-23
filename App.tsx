@@ -24,7 +24,7 @@ function App() {
   const [language, setLanguage] = useState<Language>('ar');
   
   // Firebase State
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [bannerText, setBannerText] = useState('أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م');
@@ -43,7 +43,7 @@ function App() {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      if (data.length > 0) setProducts(data);
+      setProducts(data);
     }, (error) => {
       console.error("Products listener error:", error);
     });
