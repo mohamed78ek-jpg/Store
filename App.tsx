@@ -12,7 +12,7 @@ import { Search, Mail, Banknote } from 'lucide-react';
 import { PRODUCTS } from './constants';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -244,6 +244,19 @@ function App() {
     }
   };
 
+  const handleClearAllProducts = async () => {
+    try {
+      const batch = writeBatch(db);
+      products.forEach((product) => {
+        batch.delete(doc(db, 'products', product.id));
+      });
+      await batch.commit();
+      showNotification(t('تم حذف جميع المنتجات بنجاح', 'All products deleted successfully'));
+    } catch (error) {
+      showNotification(t('فشل في حذف المنتجات', 'Failed to delete products'));
+    }
+  };
+
   const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
@@ -279,6 +292,7 @@ function App() {
             reports={reports}
             onAddProduct={handleAddProduct}
             onRemoveProduct={handleRemoveProduct}
+            onClearAllProducts={handleClearAllProducts}
             language={language}
             bannerText={bannerText}
             onUpdateBannerText={handleUpdateBannerText}

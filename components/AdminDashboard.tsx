@@ -10,6 +10,7 @@ interface AdminDashboardProps {
   reports: Report[];
   onAddProduct: (product: Product) => void;
   onRemoveProduct: (id: string) => void;
+  onClearAllProducts: () => void;
   language: Language;
   bannerText: string;
   onUpdateBannerText: (text: string) => void;
@@ -27,6 +28,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   reports,
   onAddProduct, 
   onRemoveProduct,
+  onClearAllProducts,
   language,
   bannerText,
   onUpdateBannerText,
@@ -608,9 +610,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <Package size={24} className="text-emerald-600" />
               {t('قائمة المنتجات الحالية', 'Current Products List')}
             </h2>
-            <span className="text-sm font-bold text-gray-500 bg-white border border-gray-200 px-3 py-1 rounded-full">
-              {products.length} {t('منتج', 'Products')}
-            </span>
+            <div className="flex items-center gap-3">
+              {products.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(t('هل أنت متأكد من حذف جميع المنتجات نهائياً؟ لا يمكن التراجع عن هذه الخطوة.', 'Are you sure you want to delete ALL products permanently? This action cannot be undone.'))) {
+                      onClearAllProducts();
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 border border-red-200 transition-colors font-bold text-sm"
+                >
+                  <Trash2 size={16} />
+                  {t('حذف الكل', 'Delete All')}
+                </button>
+              )}
+              <span className="text-sm font-bold text-gray-500 bg-white border border-gray-200 px-3 py-1 rounded-full">
+                {products.length} {t('منتج', 'Products')}
+              </span>
+            </div>
           </div>
           
           <div className="divide-y divide-gray-100">
