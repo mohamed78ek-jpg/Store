@@ -237,11 +237,8 @@ function App() {
   const handleRemoveProduct = async (id: string) => {
     if (!id) return;
     try {
-      // Optimistic update
-      setProducts(prev => prev.filter(p => p.id !== id));
-      setCart(prev => prev.filter(item => item.id !== id));
-
       await deleteDoc(doc(db, 'products', id));
+      setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
     } catch (error: any) {
       console.error("Delete product error:", error);
