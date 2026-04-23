@@ -17,6 +17,7 @@ interface AdminDashboardProps {
   popupConfig: PopupConfig;
   onUpdatePopupConfig: (config: PopupConfig) => void;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  onRemoveOrder: (orderId: string) => void;
   onDeleteReport: (reportId: string) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
@@ -35,6 +36,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   popupConfig,
   onUpdatePopupConfig,
   onUpdateOrderStatus,
+  onRemoveOrder,
   onDeleteReport,
   isAuthenticated,
   onLogin
@@ -368,6 +370,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       >
                         <Printer size={18} />
                         {t('طباعة / حفظ', 'Print / Save')}
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          if (window.confirm(t('هل أنت متأكد من حذف هذا الطلب؟', 'Are you sure you want to delete this order?'))) {
+                            onRemoveOrder(order.id);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-red-600 hover:bg-red-50 border border-red-100 font-bold px-4 py-2 rounded-lg transition-colors w-full justify-center mt-1"
+                      >
+                        <Trash2 size={18} />
+                        {t('حذف الطلب', 'Delete Order')}
                       </button>
                     </div>
                   </div>

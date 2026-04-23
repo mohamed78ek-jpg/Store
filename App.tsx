@@ -282,6 +282,16 @@ function App() {
     }
   };
 
+  const handleRemoveOrder = async (id: string) => {
+    try {
+      setOrders(prev => prev.filter(o => o.id !== id));
+      await deleteDoc(doc(db, 'orders', id));
+      showNotification(t('تم حذف الطلب بنجاح', 'Order deleted successfully'));
+    } catch (error: any) {
+      showNotification(t('فشل في حذف الطلب', 'Failed to delete order'));
+    }
+  };
+
   const handleUpdateBannerText = async (text: string) => {
     try {
       await setDoc(doc(db, 'siteConfig', 'global'), { bannerText: text }, { merge: true });
@@ -315,6 +325,7 @@ function App() {
             popupConfig={popupConfig}
             onUpdatePopupConfig={handleUpdatePopupConfig}
             onUpdateOrderStatus={handleUpdateOrderStatus}
+            onRemoveOrder={handleRemoveOrder}
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
