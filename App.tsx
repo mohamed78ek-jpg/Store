@@ -24,7 +24,6 @@ function App() {
   const [language, setLanguage] = useState<Language>('ar');
   
   // Firebase State
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -34,17 +33,10 @@ function App() {
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
 
-  // Auth Listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, []);
-
+  // isAdminUser now depends on manual login state
   const isAdminUser = useMemo(() => {
-    return currentUser?.email === 'mohamederrabani951@gmail.com';
-  }, [currentUser]);
+    return isManualAdmin;
+  }, [isManualAdmin]);
 
   // Firestore Data Listeners
   useEffect(() => {
@@ -238,7 +230,7 @@ function App() {
       await setDoc(doc(db, 'products', productData.id), productData);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
-      showNotification(t('فشل في إضافة المنتج: تأكد من تسجيل دخولك بجوجل', 'Failed to add product: Make sure you are logged in with Google'));
+      showNotification(t('فشل في إضافة المنتج', 'Failed to add product'));
     }
   };
 
@@ -248,7 +240,7 @@ function App() {
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
     } catch (error: any) {
-      showNotification(t('فشل في حذف المنتج: تأكد من تسجيل دخولك بجوجل', 'Failed to delete product: Make sure you are logged in with Google'));
+      showNotification(t('فشل في حذف المنتج', 'Failed to delete product'));
     }
   };
 
@@ -296,7 +288,6 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
-            currentUser={currentUser}
           />
         );
       case ViewState.CART:

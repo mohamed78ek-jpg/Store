@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
-import { loginWithGoogle, logout } from '../lib/firebase';
+import { logout } from '../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -19,7 +19,6 @@ interface AdminDashboardProps {
   onDeleteReport: (reportId: string) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
-  currentUser: any;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -36,8 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateOrderStatus,
   onDeleteReport,
   isAuthenticated,
-  onLogin,
-  currentUser
+  onLogin
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -198,26 +196,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {t('دخول المسؤول', 'Admin Login')}
               </button>
             </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-              <span className="relative px-3 bg-white text-gray-400 text-xs font-bold uppercase z-10">{t('أو عبر جوجل للصلاحيات', 'OR Google for Permissions')}</span>
-            </div>
-
-            <button
-               onClick={async () => {
-                 try {
-                   await loginWithGoogle();
-                   onLogin(true);
-                 } catch (err) {
-                   setError(t('فشل تسجيل الدخول بجوجل', 'Google Login Failed'));
-                 }
-               }}
-               className="w-full py-3 border-2 border-gray-100 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-               <img src="https://www.google.com/favicon.ico" alt="G" className="w-4 h-4" />
-               {t('تسجيل الدخول بجوجل (للحذف والإضافة)', 'Login with Google (Required for Delete/Add)')}
-            </button>
         </div>
       </div>
     );
@@ -237,14 +215,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* Navigation Tabs - Reorganized */}
-      {!currentUser && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
-          <ShieldCheck className="flex-shrink-0" />
-          <p className="text-sm font-medium">
-            {t('تنبيه: أنت مسجل دخول كمسؤول محلي فقط. يجب تسجيل الدخول بجوجل لتتمكن من إضافة أو حذف المنتجات.', 'Warning: You are logged in as a local admin only. You must Login with Google to add or delete products.')}
-          </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-8 print:hidden">
         <button
