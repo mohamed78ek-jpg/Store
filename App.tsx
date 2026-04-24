@@ -45,20 +45,16 @@ function App() {
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
-      // Auto-Cleanup: If there are legacy products with numeric IDs 1-5, remove them once.
-      const legacyMockIds = ['1', '2', '3', '4', '5'];
-      const mocksToDelete = data.filter(p => legacyMockIds.includes(p.id));
-      
-      if (mocksToDelete.length > 0 && !cleanupAttempted.current) {
-        cleanupAttempted.current = true;
+      // One-time deletion of legacy mock products (IDs 1-5)
+      const mockIds = ['1', '2', '3', '4', '5'];
+      const mocks = data.filter(p => mockIds.includes(p.id));
+      if (mocks.length > 0) {
         const batch = writeBatch(db);
-        mocksToDelete.forEach(p => {
-          batch.delete(doc(db, 'products', p.id));
-        });
-        batch.commit().catch(err => console.error("Cleanup failed", err));
+        mocks.forEach(m => batch.delete(doc(db, 'products', m.id)));
+        batch.commit().catch(() => {});
       }
 
-      setProducts(data.filter(p => !legacyMockIds.includes(p.id)));
+      setProducts(data.filter(p => !mockIds.includes(p.id)));
     }, (error) => {
       console.error("Products listener error:", error);
     });

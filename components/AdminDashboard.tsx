@@ -705,6 +705,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-16 text-center flex flex-col items-center justify-center">
                 <Package size={64} className="mb-4 text-gray-200" />
                 <p className="text-gray-500 mb-6">{t('المتجر فارغ حالياً، يمكنك إضافة منتجات جديدة.', 'The store is currently empty. You can add new products.')}</p>
+                <button 
+                  onClick={() => setActiveTab('add_product')}
+                  className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg"
+                >
+                  {t('إضافة أول منتج', 'Add First Product')}
+                </button>
               </div>
             )}
           </div>
