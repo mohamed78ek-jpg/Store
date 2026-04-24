@@ -37,17 +37,20 @@ function App() {
     return isManualAdmin;
   }, [isManualAdmin]);
 
+  const cleanupAttempted = React.useRef(false);
+
   // Firestore Data Listeners
   useEffect(() => {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
       // Auto-Cleanup: If there are legacy products with numeric IDs 1-5, remove them once.
       const legacyMockIds = ['1', '2', '3', '4', '5'];
       const mocksToDelete = data.filter(p => legacyMockIds.includes(p.id));
       
-      if (mocksToDelete.length > 0) {
+      if (mocksToDelete.length > 0 && !cleanupAttempted.current) {
+        cleanupAttempted.current = true;
         const batch = writeBatch(db);
         mocksToDelete.forEach(p => {
           batch.delete(doc(db, 'products', p.id));
@@ -60,9 +63,9 @@ function App() {
       console.error("Products listener error:", error);
     });
 
-    const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (doc) => {
-      if (doc.exists()) {
-        const config = doc.data();
+    const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snapshot) => {
+      if (snapshot.exists()) {
+        const config = snapshot.data();
         if (config.bannerText) setBannerText(config.bannerText);
         if (config.popupConfig) setPopupConfig(config.popupConfig);
       }
@@ -141,11 +144,11 @@ function App() {
       result = result.filter(p => p.category === selectedCategory);
     }
     
-    const query = (searchQuery || '').trim().toLowerCase();
+    const query = String(searchQuery || '').trim().toLowerCase();
     if (query) {
       result = result.filter(p => {
-        const name = (p.name || '').toLowerCase();
-        const description = (p.description || '').toLowerCase();
+        const name = String(p.name || '').toLowerCase();
+        const description = String(p.description || '').toLowerCase();
         return name.includes(query) || description.includes(query);
       });
     }
