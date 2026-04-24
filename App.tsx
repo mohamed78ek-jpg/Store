@@ -9,10 +9,9 @@ import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
-import { PRODUCTS } from './constants';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -41,16 +40,12 @@ function App() {
   // Firestore Data Listeners
   useEffect(() => {
     // Public Listeners
-    const fetchProducts = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'products'));
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-        setProducts(data);
-      } catch (error) {
-        console.error("Products fetch error:", error);
-      }
-    };
-    fetchProducts();
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      setProducts(data);
+    }, (error) => {
+      console.error("Products listener error:", error);
+    });
 
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (doc) => {
       if (doc.exists()) {
@@ -85,6 +80,7 @@ function App() {
     }
 
     return () => {
+      unsubProducts();
       unsubConfig();
       if (unsubOrders) unsubOrders();
       if (unsubReports) unsubReports();
@@ -231,7 +227,6 @@ function App() {
   const handleAddProduct = async (productData: Product) => {
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
-      setProducts(prev => [...prev, productData]);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
       showNotification(t('فشل في إضافة المنتج', 'Failed to add product'));
@@ -242,7 +237,6 @@ function App() {
     if (!id) return;
     try {
       await deleteDoc(doc(db, 'products', id));
-      setProducts(prev => prev.filter(p => p.id !== id));
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
     } catch (error: any) {
@@ -263,10 +257,7 @@ function App() {
         batch.delete(doc(db, 'products', product.id));
       });
       
-      // Optimistic update
-      setProducts([]);
       setCart([]);
-      
       await batch.commit();
       showNotification(t('تم حذف جميع المنتجات بنجاح', 'All products deleted successfully'));
     } catch (error: any) {
