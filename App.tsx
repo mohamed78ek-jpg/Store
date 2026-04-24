@@ -42,7 +42,20 @@ function App() {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(data);
+      
+      // Auto-Cleanup: If there are legacy products with numeric IDs 1-5, remove them once.
+      const legacyMockIds = ['1', '2', '3', '4', '5'];
+      const mocksToDelete = data.filter(p => legacyMockIds.includes(p.id));
+      
+      if (mocksToDelete.length > 0) {
+        const batch = writeBatch(db);
+        mocksToDelete.forEach(p => {
+          batch.delete(doc(db, 'products', p.id));
+        });
+        batch.commit().catch(err => console.error("Cleanup failed", err));
+      }
+
+      setProducts(data.filter(p => !legacyMockIds.includes(p.id)));
     }, (error) => {
       console.error("Products listener error:", error);
     });
@@ -127,12 +140,14 @@ function App() {
     if (selectedCategory !== 'All') {
       result = result.filter(p => p.category === selectedCategory);
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        p.description.toLowerCase().includes(q)
-      );
+    
+    const query = (searchQuery || '').trim().toLowerCase();
+    if (query) {
+      result = result.filter(p => {
+        const name = (p.name || '').toLowerCase();
+        const description = (p.description || '').toLowerCase();
+        return name.includes(query) || description.includes(query);
+      });
     }
     return result;
   }, [selectedCategory, searchQuery, language, products]);
@@ -227,6 +242,7 @@ function App() {
   const handleAddProduct = async (productData: Product) => {
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
+      setProducts(prev => [...prev, productData]); // Optimistic update
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
       console.error("Add product error:", error);
@@ -237,6 +253,8 @@ function App() {
   const handleRemoveProduct = async (id: string) => {
     if (!id) return;
     try {
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p.id !== id));
       await deleteDoc(doc(db, 'products', id));
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
@@ -253,7 +271,11 @@ function App() {
     }
     
     try {
+      // Optimistic update
       const currentProducts = [...products];
+      setProducts([]);
+      setCart([]);
+
       const batch = writeBatch(db);
       currentProducts.forEach((product) => {
         batch.delete(doc(db, 'products', product.id));

@@ -110,7 +110,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         sizes: sizesArray
       });
       setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
-      alert(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     }
   };
 
@@ -587,21 +586,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 
                 {/* Preview if image exists */}
                 {newProduct.image && (
-                  <div className="mt-4 flex flex-col items-center gap-2 animate-in fade-in duration-300">
-                    <div className="relative group">
-                      <div className="w-32 h-32 rounded-lg border-2 border-emerald-100 overflow-hidden bg-gray-100 shadow-inner">
-                        <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
-                      </div>
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <div className="relative w-32 h-32 rounded-lg border border-gray-200 overflow-hidden bg-gray-100 group">
+                      <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
                       <button 
                         type="button"
                         onClick={() => setNewProduct({...newProduct, image: ''})}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors border-2 border-white"
-                        title={t('مسح الصورة', 'Clear Image')}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        title={t('حذف الصورة', 'Clear Image')}
                       >
                         <X size={14} />
                       </button>
                     </div>
-                    <span className="text-xs text-gray-400 font-medium">{t('معاينة الصورة', 'Image Preview')}</span>
+                    <button 
+                      type="button"
+                      onClick={() => setNewProduct({...newProduct, image: ''})}
+                      className="text-xs text-red-500 font-bold hover:underline"
+                    >
+                      {t('إزالة الصورة', 'Remove Image')}
+                    </button>
                   </div>
                 )}
               </div>
@@ -819,17 +822,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* Preview */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 text-center md:text-right">{t('معاينة الإعلان', 'Ad Preview')}</label>
-                        <div className="w-full max-w-[200px] aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 mx-auto md:mx-0 flex items-center justify-center relative group">
+                        <div className="relative w-full max-w-[200px] aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 mx-auto md:mx-0 flex items-center justify-center group">
                           {popupConfig.image ? (
                             <>
-                              <img src={popupConfig.image} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <img src={popupConfig.image} alt="Preview" className="w-full h-full object-cover" />
                               <button 
                                 type="button"
                                 onClick={() => onUpdatePopupConfig({...popupConfig, image: ''})}
-                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors border-2 border-white opacity-0 group-hover:opacity-100 duration-200"
-                                title={t('مسح الصورة', 'Clear Image')}
+                                className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-xl"
+                                title={t('حذف الصورة', 'Clear Image')}
                               >
-                                <X size={14} />
+                                <X size={20} />
                               </button>
                             </>
                           ) : (
@@ -839,6 +842,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           )}
                         </div>
+                        {popupConfig.image && (
+                          <div className="mt-2 text-center md:text-right">
+                             <button 
+                              type="button"
+                              onClick={() => onUpdatePopupConfig({...popupConfig, image: ''})}
+                              className="text-xs text-red-500 font-bold hover:underline"
+                            >
+                              {t('إزالة صورة الإعلان', 'Remove Ad Image')}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
