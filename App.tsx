@@ -227,8 +227,10 @@ function App() {
   const handleAddProduct = async (productData: Product) => {
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
+      setProducts(prev => [...prev, productData]); // Optimistic update
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
+      console.error("Add product error:", error);
       showNotification(t('فشل في إضافة المنتج', 'Failed to add product'));
     }
   };
@@ -236,6 +238,8 @@ function App() {
   const handleRemoveProduct = async (id: string) => {
     if (!id) return;
     try {
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p.id !== id));
       await deleteDoc(doc(db, 'products', id));
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
@@ -252,12 +256,16 @@ function App() {
     }
     
     try {
+      // Optimistic update
+      const currentProducts = [...products];
+      setProducts([]);
+      setCart([]);
+
       const batch = writeBatch(db);
-      products.forEach((product) => {
+      currentProducts.forEach((product) => {
         batch.delete(doc(db, 'products', product.id));
       });
       
-      setCart([]);
       await batch.commit();
       showNotification(t('تم حذف جميع المنتجات بنجاح', 'All products deleted successfully'));
     } catch (error: any) {
