@@ -46,14 +46,18 @@ try {
 export const auth = firebaseAuth;
 
 // Initialize Firestore
-// Using experimentalForceLongPolling: true to improve reliability in some environments (like Cloud Run/Iframe)
+// Using experimentalForceLongPolling and local cache to improve reliability in environment constraints
 let firestoreDb;
 try {
   firestoreDb = initializeFirestore(app, {
     experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
   }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
+  console.warn("Falling back to standard getFirestore due to initialization error:", e);
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;
