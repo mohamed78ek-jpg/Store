@@ -56,9 +56,28 @@ function App() {
       setIsOffline(false);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
-      // Sort products by ID (which is timestamp) descending
-      data.sort((a, b) => String(b.id).localeCompare(String(a.id)));
-      setProducts(data);
+      // Cleanup legacy mock products (IDs 1-5) if they exist
+      const mockIds = ['1', '2', '3', '4', '5'];
+      const mocks = data.filter(p => mockIds.includes(String(p.id)));
+      
+      if (mocks.length > 0) {
+        const batch = writeBatch(db);
+        mocks.forEach(m => batch.delete(doc(db, 'products', m.id)));
+        batch.commit().catch(() => {});
+      }
+
+      // Sort products: Newer products (higher ID which is timestamp) first
+      // We use numeric comparison if possible, otherwise string compare
+      const sorted = data.filter(p => !mockIds.includes(String(p.id))).sort((a, b) => {
+        const idA = Number(a.id);
+        const idB = Number(b.id);
+        if (!isNaN(idA) && !isNaN(idB)) {
+          return idB - idA;
+        }
+        return String(b.id).localeCompare(String(a.id));
+      });
+      
+      setProducts(sorted);
     }, (error: any) => {
       console.error("Products listener error:", error);
       if (error.code === 'unavailable') setIsOffline(true);
