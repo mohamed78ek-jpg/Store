@@ -70,8 +70,8 @@ function App() {
       }
 
       // Sort products by ID (which is timestamp) descending
-      const filtered = data.filter(p => !mockIds.includes(p.id));
-      filtered.sort((a, b) => b.id.localeCompare(a.id));
+      const filtered = data.filter(p => !mockIds.includes(String(p.id)));
+      filtered.sort((a, b) => String(b.id).localeCompare(String(a.id)));
       setProducts(filtered);
     }, (error: any) => {
       console.error("Products listener error:", error);
