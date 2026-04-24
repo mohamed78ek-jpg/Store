@@ -45,14 +45,12 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      // Basic core fields check
-      let requiredFields = ['id', 'customerName', 'phoneNumber', 'email', 'address', 'items', 'totalAmount', 'date', 'status'];
+      // Basic core fields check: Removed email and address requirements
+      let requiredFields = ['id', 'customerName', 'phoneNumber', 'items', 'totalAmount', 'date', 'status'];
       return data.keys().hasAll(requiredFields) &&
              data.id is string && isValidId(data.id) &&
              data.customerName is string && data.customerName.size() <= 300 &&
              data.phoneNumber is string && data.phoneNumber.size() <= 100 &&
-             data.email is string && data.email.size() <= 300 &&
-             data.address is string && data.address.size() <= 500 &&
              data.items is list && data.items.size() > 0 &&
              data.totalAmount is number &&
              data.date is string &&

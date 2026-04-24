@@ -38,6 +38,11 @@ function App() {
     return localStorage.getItem('is_admin') === 'true';
   });
 
+  // Persist admin state to localStorage
+  useEffect(() => {
+    localStorage.setItem('is_admin', isManualAdmin ? 'true' : 'false');
+  }, [isManualAdmin]);
+
   // isAdminUser now depends on manual login state
   const isAdminUser = useMemo(() => {
     return isManualAdmin;
@@ -279,8 +284,13 @@ function App() {
   const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
     const newOrder: Order = {
-      ...orderData,
       id: orderId,
+      customerName: orderData.customerName,
+      phoneNumber: orderData.phoneNumber,
+      email: orderData.email || '',
+      address: orderData.address || '',
+      items: orderData.items,
+      totalAmount: orderData.totalAmount,
       date: new Date().toISOString(),
       status: 'pending'
     };
