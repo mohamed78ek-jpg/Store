@@ -49,9 +49,7 @@ export enum ViewState {
   HOME = 'HOME',
   CART = 'CART',
   PRODUCT_DETAILS = 'PRODUCT_DETAILS',
-  ADMIN = 'ADMIN',
-  TRACK_ORDER = 'TRACK_ORDER',
-  REPORT_PROBLEM = 'REPORT_PROBLEM'
+  ADMIN = 'ADMIN'
 }
 
 export type Language = 'ar' | 'en';

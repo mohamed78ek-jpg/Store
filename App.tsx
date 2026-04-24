@@ -5,8 +5,6 @@ import { Cart } from './components/Cart';
 import { Sidebar } from './components/Sidebar';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
-import { TrackOrder } from './components/TrackOrder';
-import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { auth, db } from './lib/firebase';
@@ -231,9 +229,15 @@ function App() {
     if (query) {
       result = result.filter(p => {
         if (!p) return false;
-        const name = String(p.name || '').toLowerCase();
-        const description = String(p.description || '').toLowerCase();
-        return name.indexOf(query) !== -1 || description.indexOf(query) !== -1;
+        try {
+          const name = String(p.name || '').toLowerCase();
+          const description = String(p.description || '').toLowerCase();
+          return (typeof name === 'string' && name.indexOf(query) !== -1) || 
+                 (typeof description === 'string' && description.indexOf(query) !== -1);
+        } catch (e) {
+          console.error("Filter error:", e);
+          return false;
+        }
       });
     }
     return result;
@@ -443,21 +447,6 @@ function App() {
             onUpdateQuantity={handleUpdateQuantity}
             onBack={() => setCurrentView(ViewState.HOME)}
             onPlaceOrder={handlePlaceOrder}
-            language={language}
-          />
-        );
-      case ViewState.TRACK_ORDER:
-        return (
-          <TrackOrder 
-            onBack={() => setCurrentView(ViewState.HOME)}
-            language={language}
-          />
-        );
-      case ViewState.REPORT_PROBLEM:
-        return (
-          <ReportProblem 
-            onSubmit={handleReportSubmit}
-            onBack={() => setCurrentView(ViewState.HOME)}
             language={language}
           />
         );
