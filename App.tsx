@@ -42,7 +42,24 @@ function App() {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(data);
+      
+      // Auto-Cleanup: If there are products with IDs '1', '2', '3', '4', '5' or mock names, remove them
+      const mockIds = ['1', '2', '3', '4', '5'];
+      const mockNames = ['بنطال تشينو بيج', 'طقم رياضي للأطفال', 'حذاء رياضي مريح', 'وشاح شتوي صوف', 'نظارة شمسية كلاسيكية'];
+      const isMock = (p: Product) => mockIds.includes(p.id) || mockNames.includes(p.name);
+      
+      const hasMocks = data.some(isMock);
+      if (hasMocks) {
+        const batch = writeBatch(db);
+        data.forEach(p => {
+          if (isMock(p)) {
+            batch.delete(doc(db, 'products', p.id));
+          }
+        });
+        batch.commit().catch(err => console.error("Cleanup failed", err));
+      }
+
+      setProducts(data.filter(p => !isMock(p)));
     }, (error) => {
       console.error("Products listener error:", error);
     });
