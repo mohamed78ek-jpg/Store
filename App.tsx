@@ -56,21 +56,32 @@ function App() {
       setIsOffline(false);
       const data = snapshot.docs.map(d => {
         const docData = d.data();
+        if (!docData) return null;
+        // Ensure all required fields exist and are of correct type
         return { 
-          id: String(d.id), 
           ...docData,
+          id: String(d.id), 
           name: String(docData.name || ''),
           description: String(docData.description || ''),
           category: String(docData.category || ''),
-          image: String(docData.image || '')
+          image: String(docData.image || ''),
+          price: Number(docData.price || 0),
+          discountPrice: docData.discountPrice ? Number(docData.discountPrice) : undefined,
+          sizes: Array.isArray(docData.sizes) ? docData.sizes : []
         } as Product;
+      }).filter((p): p is Product => p !== null);
+      
+      console.log(`Received ${data.length} products from Firestore`, data.map(p => p.id));
+      
+      // Cleanup legacy mock products (IDs 1-5 or common mock names) if they exist
+      const mockIds = ['1', '2', '3', '4', '5'];
+      const mocks = data.filter(p => {
+        const idNum = Number(p.id);
+        return mockIds.includes(String(p.id)) || (!isNaN(idNum) && idNum < 1000);
       });
       
-      // Cleanup legacy mock products (IDs 1-5) if they exist
-      const mockIds = ['1', '2', '3', '4', '5'];
-      const mocks = data.filter(p => mockIds.includes(String(p.id)));
-      
       if (mocks.length > 0) {
+        console.log(`Cleaning up ${mocks.length} mock products`);
         const batch = writeBatch(db);
         mocks.forEach(m => {
           if (m && m.id) batch.delete(doc(db, 'products', m.id));
@@ -79,7 +90,10 @@ function App() {
       }
 
       // Sort products: Newer products (higher ID which is timestamp) first
-      const sorted = data.filter(p => p && !mockIds.includes(String(p.id))).sort((a, b) => {
+      const sorted = data.filter(p => {
+        const idNum = Number(p.id);
+        return p && !mockIds.includes(String(p.id)) && (isNaN(idNum) || idNum >= 1000);
+      }).sort((a, b) => {
         const idA = Number(a.id);
         const idB = Number(b.id);
         if (!isNaN(idA) && !isNaN(idB)) {
@@ -88,6 +102,7 @@ function App() {
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
+      console.log(`Setting state with ${sorted.length} active products`);
       setProducts(sorted);
     }, (error: any) => {
       console.error("Products listener error:", error);

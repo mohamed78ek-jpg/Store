@@ -116,6 +116,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
       setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
       setImageError('');
+      setActiveTab('product_list');
     }
   };
 
