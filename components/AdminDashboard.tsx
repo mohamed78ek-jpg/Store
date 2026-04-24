@@ -587,10 +587,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 
                 {/* Preview if image exists */}
                 {newProduct.image && (
-                  <div className="mt-4 flex justify-center">
-                    <div className="w-32 h-32 rounded-lg border border-gray-200 overflow-hidden bg-gray-100">
-                      <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="mt-4 flex flex-col items-center gap-2 animate-in fade-in duration-300">
+                    <div className="relative group">
+                      <div className="w-32 h-32 rounded-lg border-2 border-emerald-100 overflow-hidden bg-gray-100 shadow-inner">
+                        <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setNewProduct({...newProduct, image: ''})}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors border-2 border-white"
+                        title={t('مسح الصورة', 'Clear Image')}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
+                    <span className="text-xs text-gray-400 font-medium">{t('معاينة الصورة', 'Image Preview')}</span>
                   </div>
                 )}
               </div>
@@ -808,9 +819,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* Preview */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 text-center md:text-right">{t('معاينة الإعلان', 'Ad Preview')}</label>
-                        <div className="w-full max-w-[200px] aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 mx-auto md:mx-0 flex items-center justify-center">
+                        <div className="w-full max-w-[200px] aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 mx-auto md:mx-0 flex items-center justify-center relative group">
                           {popupConfig.image ? (
-                            <img src={popupConfig.image} alt="Preview" className="w-full h-full object-cover" />
+                            <>
+                              <img src={popupConfig.image} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <button 
+                                type="button"
+                                onClick={() => onUpdatePopupConfig({...popupConfig, image: ''})}
+                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors border-2 border-white opacity-0 group-hover:opacity-100 duration-200"
+                                title={t('مسح الصورة', 'Clear Image')}
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
                           ) : (
                             <div className="flex flex-col items-center text-gray-400 gap-2">
                               <ImageIcon size={32} />

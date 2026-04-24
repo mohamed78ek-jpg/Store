@@ -42,24 +42,7 @@ function App() {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      
-      // Auto-Cleanup: If there are products with IDs '1', '2', '3', '4', '5' or mock names, remove them
-      const mockIds = ['1', '2', '3', '4', '5'];
-      const mockNames = ['بنطال تشينو بيج', 'طقم رياضي للأطفال', 'حذاء رياضي مريح', 'وشاح شتوي صوف', 'نظارة شمسية كلاسيكية'];
-      const isMock = (p: Product) => mockIds.includes(p.id) || mockNames.includes(p.name);
-      
-      const hasMocks = data.some(isMock);
-      if (hasMocks) {
-        const batch = writeBatch(db);
-        data.forEach(p => {
-          if (isMock(p)) {
-            batch.delete(doc(db, 'products', p.id));
-          }
-        });
-        batch.commit().catch(err => console.error("Cleanup failed", err));
-      }
-
-      setProducts(data.filter(p => !isMock(p)));
+      setProducts(data);
     }, (error) => {
       console.error("Products listener error:", error);
     });
@@ -244,7 +227,6 @@ function App() {
   const handleAddProduct = async (productData: Product) => {
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
-      setProducts(prev => [...prev, productData]); // Optimistic update
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
       console.error("Add product error:", error);
@@ -255,8 +237,6 @@ function App() {
   const handleRemoveProduct = async (id: string) => {
     if (!id) return;
     try {
-      // Optimistic update
-      setProducts(prev => prev.filter(p => p.id !== id));
       await deleteDoc(doc(db, 'products', id));
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
@@ -273,11 +253,7 @@ function App() {
     }
     
     try {
-      // Optimistic update
       const currentProducts = [...products];
-      setProducts([]);
-      setCart([]);
-
       const batch = writeBatch(db);
       currentProducts.forEach((product) => {
         batch.delete(doc(db, 'products', product.id));
