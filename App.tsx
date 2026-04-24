@@ -42,8 +42,6 @@ function App() {
     return isManualAdmin;
   }, [isManualAdmin]);
 
-  const cleanupAttempted = React.useRef(false);
-
   // Firestore Data Listeners
   useEffect(() => {
     // Check initial connection
@@ -58,21 +56,9 @@ function App() {
       setIsOffline(false);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
-      // Cleanup legacy mock products (IDs 1-5)
-      const mockIds = ['1', '2', '3', '4', '5'];
-      const mocks = data.filter(p => mockIds.includes(p.id));
-      
-      if (mocks.length > 0 && !cleanupAttempted.current) {
-        cleanupAttempted.current = true;
-        const batch = writeBatch(db);
-        mocks.forEach(m => batch.delete(doc(db, 'products', m.id)));
-        batch.commit().catch(() => {});
-      }
-
       // Sort products by ID (which is timestamp) descending
-      const filtered = data.filter(p => !mockIds.includes(String(p.id)));
-      filtered.sort((a, b) => String(b.id).localeCompare(String(a.id)));
-      setProducts(filtered);
+      data.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+      setProducts(data);
     }, (error: any) => {
       console.error("Products listener error:", error);
       if (error.code === 'unavailable') setIsOffline(true);
