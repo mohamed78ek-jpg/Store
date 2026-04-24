@@ -37,7 +37,7 @@ service cloud.firestore {
              data.id is string && isValidId(data.id) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
              data.price is number && data.price >= 0 &&
-             data.image is string && data.image.size() <= 1000000 && // Allowing for base64
+             data.image is string && data.image.size() <= 1048576 &&
              data.category is string &&
              data.description is string &&
              (!('discountPrice' in data) || (data.discountPrice is number && data.discountPrice >= 0)) &&

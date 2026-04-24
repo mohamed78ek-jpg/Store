@@ -20,7 +20,9 @@ function App() {
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [language, setLanguage] = useState<Language>('ar');
+  const [language, setLanguage] = useState<Language>(() => {
+    return (localStorage.getItem('app_lang') as Language) || 'ar';
+  });
   
   // Firebase State
   const [products, setProducts] = useState<Product[]>([]);
@@ -31,7 +33,9 @@ function App() {
   const [isOffline, setIsOffline] = useState(false);
 
   const [showAdPopup, setShowAdPopup] = useState(false);
-  const [isManualAdmin, setIsManualAdmin] = useState(false);
+  const [isManualAdmin, setIsManualAdmin] = useState(() => {
+    return localStorage.getItem('is_admin') === 'true';
+  });
 
   // isAdminUser now depends on manual login state
   const isAdminUser = useMemo(() => {
@@ -54,16 +58,21 @@ function App() {
       setIsOffline(false);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
-      // One-time deletion of legacy mock products (IDs 1-5)
+      // Cleanup legacy mock products (IDs 1-5)
       const mockIds = ['1', '2', '3', '4', '5'];
       const mocks = data.filter(p => mockIds.includes(p.id));
-      if (mocks.length > 0) {
+      
+      if (mocks.length > 0 && !cleanupAttempted.current) {
+        cleanupAttempted.current = true;
         const batch = writeBatch(db);
         mocks.forEach(m => batch.delete(doc(db, 'products', m.id)));
         batch.commit().catch(() => {});
       }
 
-      setProducts(data.filter(p => !mockIds.includes(p.id)));
+      // Sort products by ID (which is timestamp) descending
+      const filtered = data.filter(p => !mockIds.includes(p.id));
+      filtered.sort((a, b) => b.id.localeCompare(a.id));
+      setProducts(filtered);
     }, (error: any) => {
       console.error("Products listener error:", error);
       if (error.code === 'unavailable') setIsOffline(true);
@@ -118,7 +127,12 @@ function App() {
   useEffect(() => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
+    localStorage.setItem('app_lang', language);
   }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('is_admin', String(isManualAdmin));
+  }, [isManualAdmin]);
 
   // Show Popup if active
   useEffect(() => {
@@ -256,7 +270,6 @@ function App() {
   const handleAddProduct = async (productData: Product) => {
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
-      setProducts(prev => [...prev, productData]); // Optimistic update
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
       console.error("Add product error:", error);
@@ -267,8 +280,6 @@ function App() {
   const handleRemoveProduct = async (id: string) => {
     if (!id) return;
     try {
-      // Optimistic update
-      setProducts(prev => prev.filter(p => p.id !== id));
       await deleteDoc(doc(db, 'products', id));
       setCart(prev => prev.filter(item => item.id !== id));
       showNotification(t('تم حذف المنتج بنجاح نهائياً', 'Product deleted permanently'));
@@ -285,13 +296,9 @@ function App() {
     }
     
     try {
-      // Optimistic update
-      const currentProducts = [...products];
-      setProducts([]);
       setCart([]);
-
       const batch = writeBatch(db);
-      currentProducts.forEach((product) => {
+      products.forEach((product) => {
         batch.delete(doc(db, 'products', product.id));
       });
       

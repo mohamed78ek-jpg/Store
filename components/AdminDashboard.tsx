@@ -62,6 +62,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     description: '',
     sizesString: ''
   });
+  const [imageError, setImageError] = useState('');
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
@@ -93,7 +94,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newProduct.name && newProduct.price && newProduct.category && newProduct.image) {
+    if (!newProduct.category) {
+      alert(t('يرجى اختيار قسم للمنتج', 'Please select a category for the product'));
+      return;
+    }
+    if (newProduct.name && newProduct.price && newProduct.image) {
       
       const sizesArray = newProduct.sizesString 
         ? newProduct.sizesString.split(',').map(s => s.trim()).filter(s => s !== '') 
@@ -110,6 +115,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         sizes: sizesArray
       });
       setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
+      setImageError('');
     }
   };
 
@@ -127,6 +133,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 800 * 1024) {
+        setImageError(t('حجم الصورة كبير (أقصى حد 800KB). يرجى استخدام صورة أصغر لضمان الحفظ.', 'Image size is large (max 800KB). Please use a smaller image to ensure saving.'));
+        return;
+      }
+      setImageError('');
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewProduct({ ...newProduct, image: reader.result as string });
