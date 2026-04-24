@@ -799,7 +799,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                            </label>
                            <input
                             type="text"
-                            value={popupConfig.image.startsWith('data:') ? '' : popupConfig.image}
+                            value={(popupConfig.image && typeof popupConfig.image === 'string' && popupConfig.image.startsWith('data:')) ? '' : (popupConfig.image || '')}
                             onChange={(e) => onUpdatePopupConfig({...popupConfig, image: e.target.value})}
                             placeholder="https://..."
                             className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all"

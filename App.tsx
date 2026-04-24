@@ -54,7 +54,17 @@ function App() {
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       setIsOffline(false);
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      const data = snapshot.docs.map(d => {
+        const docData = d.data();
+        return { 
+          id: String(d.id), 
+          ...docData,
+          name: String(docData.name || ''),
+          description: String(docData.description || ''),
+          category: String(docData.category || ''),
+          image: String(docData.image || '')
+        } as Product;
+      });
       
       // Cleanup legacy mock products (IDs 1-5) if they exist
       const mockIds = ['1', '2', '3', '4', '5'];
@@ -62,19 +72,20 @@ function App() {
       
       if (mocks.length > 0) {
         const batch = writeBatch(db);
-        mocks.forEach(m => batch.delete(doc(db, 'products', m.id)));
+        mocks.forEach(m => {
+          if (m && m.id) batch.delete(doc(db, 'products', m.id));
+        });
         batch.commit().catch(() => {});
       }
 
       // Sort products: Newer products (higher ID which is timestamp) first
-      // We use numeric comparison if possible, otherwise string compare
-      const sorted = data.filter(p => !mockIds.includes(String(p.id))).sort((a, b) => {
+      const sorted = data.filter(p => p && !mockIds.includes(String(p.id))).sort((a, b) => {
         const idA = Number(a.id);
         const idB = Number(b.id);
         if (!isNaN(idA) && !isNaN(idB)) {
           return idB - idA;
         }
-        return String(b.id).localeCompare(String(a.id));
+        return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
       setProducts(sorted);
@@ -86,8 +97,12 @@ function App() {
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snapshot) => {
       if (snapshot.exists()) {
         const config = snapshot.data();
-        if (config.bannerText) setBannerText(config.bannerText);
-        if (config.popupConfig) setPopupConfig(config.popupConfig);
+        if (config) {
+          if (typeof config.bannerText === 'string') setBannerText(config.bannerText);
+          if (config.popupConfig && typeof config.popupConfig === 'object') {
+            setPopupConfig(config.popupConfig as PopupConfig);
+          }
+        }
       }
     }, (error: any) => {
       console.error("Config listener error:", error);
@@ -158,28 +173,31 @@ function App() {
   }, [products]);
 
   const getCategoryLabel = (cat: string) => {
-    switch (cat) {
+    if (!cat) return '';
+    const category = String(cat);
+    switch (category) {
       case 'All': return t('الكل', 'All');
       case 'رجال': return t('رجال', 'Men');
       case 'أطفال': return t('أطفال', 'Children');
       case 'أحذية': return t('أحذية', 'Shoes');
       case 'اكسسوارات': return t('اكسسوارات', 'Accessories');
-      default: return cat;
+      default: return category;
     }
   };
 
   const filteredProducts = useMemo(() => {
-    let result = products;
-    if (selectedCategory !== 'All') {
-      result = result.filter(p => p.category === selectedCategory);
+    let result = products || [];
+    if (selectedCategory && selectedCategory !== 'All') {
+      result = result.filter(p => p && p.category === selectedCategory);
     }
     
     const query = String(searchQuery || '').trim().toLowerCase();
     if (query) {
       result = result.filter(p => {
+        if (!p) return false;
         const name = String(p.name || '').toLowerCase();
         const description = String(p.description || '').toLowerCase();
-        return name.includes(query) || description.includes(query);
+        return name.indexOf(query) !== -1 || description.indexOf(query) !== -1;
       });
     }
     return result;
