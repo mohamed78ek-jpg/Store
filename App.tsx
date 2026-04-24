@@ -28,6 +28,7 @@ function App() {
   const [reports, setReports] = useState<Report[]>([]);
   const [bannerText, setBannerText] = useState('أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م');
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
+  const [isOffline, setIsOffline] = useState(false);
 
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [isManualAdmin, setIsManualAdmin] = useState(false);
@@ -41,8 +42,16 @@ function App() {
 
   // Firestore Data Listeners
   useEffect(() => {
+    // Check initial connection
+    const checkConnection = async () => {
+      const isConnected = await import('./lib/firebase').then(m => m.checkFirebaseConnection());
+      setIsOffline(!isConnected);
+    };
+    checkConnection();
+
     // Public Listeners
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      setIsOffline(false);
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       
       // One-time deletion of legacy mock products (IDs 1-5)
@@ -55,8 +64,9 @@ function App() {
       }
 
       setProducts(data.filter(p => !mockIds.includes(p.id)));
-    }, (error) => {
+    }, (error: any) => {
       console.error("Products listener error:", error);
+      if (error.code === 'unavailable') setIsOffline(true);
     });
 
     const unsubConfig = onSnapshot(doc(db, 'siteConfig', 'global'), (snapshot) => {
@@ -65,8 +75,9 @@ function App() {
         if (config.bannerText) setBannerText(config.bannerText);
         if (config.popupConfig) setPopupConfig(config.popupConfig);
       }
-    }, (error) => {
+    }, (error: any) => {
       console.error("Config listener error:", error);
+      if (error.code === 'unavailable') setIsOffline(true);
     });
 
     // Admin-Only Listeners
@@ -75,15 +86,19 @@ function App() {
 
     if (isAdminUser) {
       unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+        setIsOffline(false);
         setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-      }, (error) => {
+      }, (error: any) => {
         console.error("Orders listener error:", error);
+        if (error.code === 'unavailable') setIsOffline(true);
       });
 
       unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
+        setIsOffline(false);
         setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
-      }, (error) => {
+      }, (error: any) => {
         console.error("Reports listener error:", error);
+        if (error.code === 'unavailable') setIsOffline(true);
       });
     } else {
       // Clear sensitive data for non-admins
@@ -442,6 +457,11 @@ function App() {
       className={`min-h-screen bg-gray-50 pb-0 font-${language === 'ar' ? 'tajawal' : 'sans'} flex flex-col`}
     >
       {/* Top Banner */}
+      {isOffline && (
+        <div className="bg-amber-600 text-white py-2 text-center text-xs font-bold animate-pulse">
+          {t('أنت تعمل في وضع عدم الاتصال. قد لا تكون البيانات محدثة.', 'You are operating in offline mode. Data may not be up to date.')}
+        </div>
+      )}
       {bannerText && (
         <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
           <div className="max-w-[999px] w-full mx-auto overflow-hidden">

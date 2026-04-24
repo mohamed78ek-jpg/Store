@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -31,16 +31,31 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Auth with explicit persistence and resolver for better iframe support
-export const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence,
-  popupRedirectResolver: browserPopupRedirectResolver,
-});
+let firebaseAuth;
+try {
+  firebaseAuth = initializeAuth(app, {
+    persistence: browserLocalPersistence,
+    popupRedirectResolver: browserPopupRedirectResolver,
+  });
+} catch (e) {
+  firebaseAuth = getAuth(app);
+}
+export const auth = firebaseAuth;
 
 // Initialize Firestore
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Using experimentalForceLongPolling: true to improve reliability in some environments (like Cloud Run/Iframe)
+let firestoreDb;
+try {
+  firestoreDb = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  }, firebaseConfig.firestoreDatabaseId);
+} catch (e) {
+  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreDb;
 
 const googleProvider = new GoogleAuthProvider();
 
