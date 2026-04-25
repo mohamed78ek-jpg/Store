@@ -407,7 +407,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                      <div className="flex items-center gap-2 text-gray-600">
                         <Package size={16} />
                         <span className="font-medium text-sm">
-                          {t('عدد المنتجات:', 'Items Count:')} {(order.items || []).reduce((a, b) => a + (b.quantity || 0), 0)}
+                          {t('عدد المنتجات:', 'Items Count:')} {order.items.reduce((a, b) => a + b.quantity, 0)}
                         </span>
                      </div>
                      <span className="text-xs text-gray-400">

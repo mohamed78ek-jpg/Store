@@ -23,15 +23,14 @@
       "properties": {
         "id": { "type": "string" },
         "customerName": { "type": "string" },
-        "phoneNumber": { "type": "string" },
-        "email": { "type": "string" },
-        "address": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerAddress": { "type": "string" },
         "items": { "type": "array" },
-        "totalAmount": { "type": "number" },
+        "total": { "type": "number" },
         "status": { "type": "string" },
-        "date": { "type": "string" }
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "customerName", "phoneNumber", "email", "address", "items", "totalAmount", "status", "date"]
+      "required": ["id", "customerName", "customerPhone", "customerAddress", "items", "total", "status", "createdAt"]
     },
     "Report": {
       "title": "Report",
