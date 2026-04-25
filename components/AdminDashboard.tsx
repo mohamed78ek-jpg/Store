@@ -219,7 +219,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
-        <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            {t('تم التحديث:', 'Updated:')} {new Date().toLocaleTimeString()} ({orders.length} {t('طليات', 'orders')})
+          </p>
+        </div>
         <button 
           onClick={handleFullLogout}
           className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
@@ -402,7 +407,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                      <div className="flex items-center gap-2 text-gray-600">
                         <Package size={16} />
                         <span className="font-medium text-sm">
-                          {t('عدد المنتجات:', 'Items Count:')} {order.items.reduce((a, b) => a + b.quantity, 0)}
+                          {t('عدد المنتجات:', 'Items Count:')} {(order.items || []).reduce((a, b) => a + (b.quantity || 0), 0)}
                         </span>
                      </div>
                      <span className="text-xs text-gray-400">

@@ -45,17 +45,18 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['id', 'customerName', 'phoneNumber', 'email', 'address', 'items', 'totalAmount', 'date', 'status']) &&
+      // Basic core fields check
+      let requiredFields = ['id', 'customerName', 'phoneNumber', 'email', 'address', 'items', 'totalAmount', 'date', 'status'];
+      return data.keys().hasAll(requiredFields) &&
              data.id is string && isValidId(data.id) &&
-             data.customerName is string && data.customerName.size() <= 200 &&
-             data.phoneNumber is string && data.phoneNumber.size() <= 50 &&
-             data.email is string && data.email.size() <= 200 &&
+             data.customerName is string && data.customerName.size() <= 300 &&
+             data.phoneNumber is string && data.phoneNumber.size() <= 100 &&
+             data.email is string && data.email.size() <= 300 &&
              data.address is string && data.address.size() <= 500 &&
-             data.items is list && data.items.size() > 0 && data.items.size() <= 100 &&
-             data.totalAmount is number && data.totalAmount >= 0 &&
-             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] &&
+             data.items is list && data.items.size() > 0 &&
+             data.totalAmount is number &&
              data.date is string &&
-             (!('receiptFile' in data) || (data.receiptFile is string));
+             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     }
 
     function isValidReport(data) {
