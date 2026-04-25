@@ -490,12 +490,11 @@ function App() {
         </div>
       )}
       {bannerText && (
-        <div className="bg-gray-900 text-white h-[44px] flex items-center overflow-hidden relative z-40 w-full">
-          <div className="animate-marquee whitespace-nowrap text-sm font-bold tracking-wide py-2">
-            <span className="px-12">{bannerText}</span>
-            <span className="px-12">{bannerText}</span>
-            <span className="px-12">{bannerText}</span>
-            <span className="px-12">{bannerText}</span>
+        <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
+          <div className="max-w-[999px] w-full mx-auto overflow-hidden">
+             <div className="animate-marquee inline-block whitespace-nowrap text-sm font-bold tracking-wide w-full text-center">
+               <span className="px-4">{bannerText}</span>
+             </div>
           </div>
         </div>
       )}
