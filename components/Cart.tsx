@@ -24,7 +24,9 @@ export const Cart: React.FC<CartProps> = ({
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    phone: ''
+    phone: '',
+    email: '',
+    address: ''
   });
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
@@ -38,8 +40,8 @@ export const Cart: React.FC<CartProps> = ({
     onPlaceOrder({
       customerName: formData.name,
       phoneNumber: formData.phone,
-      email: '',
-      address: '',
+      email: formData.email,
+      address: formData.address,
       items: items,
       totalAmount: total,
     });
@@ -191,6 +193,29 @@ export const Cart: React.FC<CartProps> = ({
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
                   dir="ltr"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('البريد الإلكتروني', 'Email')}</label>
+                <input 
+                  type="email" 
+                  required 
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('عنوان التوصيل', 'Delivery Address')}</label>
+                <textarea 
+                  required 
+                  rows={2}
+                  value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none bg-white"
+                ></textarea>
               </div>
 
               <div className="pt-4">

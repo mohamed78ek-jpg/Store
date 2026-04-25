@@ -5,12 +5,13 @@ import { Cart } from './components/Cart';
 import { Sidebar } from './components/Sidebar';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdPopup } from './components/AdPopup';
+import { TrackOrder } from './components/TrackOrder';
+import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from './lib/firestoreUtils';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -35,11 +36,6 @@ function App() {
   const [isManualAdmin, setIsManualAdmin] = useState(() => {
     return localStorage.getItem('is_admin') === 'true';
   });
-
-  // Persist admin state to localStorage
-  useEffect(() => {
-    localStorage.setItem('is_admin', isManualAdmin ? 'true' : 'false');
-  }, [isManualAdmin]);
 
   // isAdminUser now depends on manual login state
   const isAdminUser = useMemo(() => {
@@ -133,32 +129,17 @@ function App() {
     let unsubReports: (() => void) | null = null;
 
     if (isAdminUser) {
-      console.log("Setting up admin listeners...");
       unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
         setIsOffline(false);
-        const fetchedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-        // Sort by date newest first
-        const sortedOrders = fetchedOrders.sort((a, b) => {
-          const tA = a.date ? new Date(a.date).getTime() : 0;
-          const tB = b.date ? new Date(b.date).getTime() : 0;
-          if (isNaN(tA) || isNaN(tB)) return String(b.id || '').localeCompare(String(a.id || ''));
-          return tB - tA;
-        });
-        console.log(`Admin fetched ${sortedOrders.length} orders`);
-        setOrders(sortedOrders);
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
       }, (error: any) => {
         console.error("Orders listener error:", error);
-        if (error.code === 'permission-denied') {
-          console.error("Permission denied for orders collection. Check Firestore rules.");
-        }
         if (error.code === 'unavailable') setIsOffline(true);
       });
 
       unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
         setIsOffline(false);
-        const fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-        const sortedReports = fetchedReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setReports(sortedReports);
+        setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
       }, (error: any) => {
         console.error("Reports listener error:", error);
         if (error.code === 'unavailable') setIsOffline(true);
@@ -229,15 +210,9 @@ function App() {
     if (query) {
       result = result.filter(p => {
         if (!p) return false;
-        try {
-          const name = String(p.name || '').toLowerCase();
-          const description = String(p.description || '').toLowerCase();
-          return (typeof name === 'string' && name.indexOf(query) !== -1) || 
-                 (typeof description === 'string' && description.indexOf(query) !== -1);
-        } catch (e) {
-          console.error("Filter error:", e);
-          return false;
-        }
+        const name = String(p.name || '').toLowerCase();
+        const description = String(p.description || '').toLowerCase();
+        return name.indexOf(query) !== -1 || description.indexOf(query) !== -1;
       });
     }
     return result;
@@ -288,26 +263,18 @@ function App() {
   const handlePlaceOrder = async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
     const orderId = Math.floor(1000000 + Math.random() * 9000000).toString();
     const newOrder: Order = {
+      ...orderData,
       id: orderId,
-      customerName: orderData.customerName,
-      phoneNumber: orderData.phoneNumber,
-      email: orderData.email || '',
-      address: orderData.address || '',
-      items: orderData.items,
-      totalAmount: orderData.totalAmount,
       date: new Date().toISOString(),
       status: 'pending'
     };
     
     try {
-      console.log("Placing order:", newOrder);
       await setDoc(doc(db, 'orders', orderId), newOrder);
       setCart([]); 
       showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (error: any) {
-      console.error("Order placement error:", error);
-      handleFirestoreError(error, OperationType.WRITE, `orders/${orderId}`);
       showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
     }
   };
@@ -447,6 +414,21 @@ function App() {
             onUpdateQuantity={handleUpdateQuantity}
             onBack={() => setCurrentView(ViewState.HOME)}
             onPlaceOrder={handlePlaceOrder}
+            language={language}
+          />
+        );
+      case ViewState.TRACK_ORDER:
+        return (
+          <TrackOrder 
+            onBack={() => setCurrentView(ViewState.HOME)}
+            language={language}
+          />
+        );
+      case ViewState.REPORT_PROBLEM:
+        return (
+          <ReportProblem 
+            onSubmit={handleReportSubmit}
+            onBack={() => setCurrentView(ViewState.HOME)}
             language={language}
           />
         );

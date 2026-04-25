@@ -49,7 +49,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const isFullyAuth = isAuthenticated;
 
   // Updated tabs state
-  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
 
   // Form State
@@ -219,12 +219,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            {t('تم التحديث:', 'Updated:')} {new Date().toLocaleTimeString()} ({orders.length} {t('طليات', 'orders')})
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
         <button 
           onClick={handleFullLogout}
           className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
@@ -236,7 +231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Navigation Tabs - Reorganized */}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-8 print:hidden">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mb-8 print:hidden">
         <button
           onClick={() => setActiveTab('orders')}
           className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
@@ -250,6 +245,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <span className="md:hidden">{t('طلبات', 'Orders')}</span>
           {orders.length > 0 && (
             <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{orders.length}</span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('reports')}
+          className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'reports' 
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+              : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          <MessageSquareWarning size={20} />
+          <span className="hidden md:inline">{t('البلاغات', 'Reports')}</span>
+          <span className="md:hidden">{t('بلاغات', 'Reports')}</span>
+          {reports.length > 0 && (
+            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{reports.length}</span>
           )}
         </button>
 
@@ -277,6 +288,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <List size={20} />
           <span className="hidden md:inline">{t('المنتجات', 'Products')}</span>
           <span className="md:hidden">{t('منتجات', 'Products')}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'settings' 
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+              : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          <Megaphone size={20} />
+          <span className="hidden md:inline">{t('إعلانات', 'Ads')}</span>
+          <span className="md:hidden">{t('إعلانات', 'Ads')}</span>
         </button>
       </div>
 
@@ -318,18 +342,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <Phone size={14} className="text-gray-400" />
                           <span dir="ltr" className="text-right">{order.phoneNumber}</span>
                         </div>
-                        {order.email && (
-                          <div className="flex items-center gap-2">
-                            <Mail size={14} className="text-gray-400" />
-                            <span>{order.email}</span>
-                          </div>
-                        )}
-                        {order.address && (
-                           <div className="flex items-center gap-2">
-                            <MapPin size={14} className="text-gray-400" />
-                            <span>{order.address}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Mail size={14} className="text-gray-400" />
+                          <span>{order.email}</span>
+                        </div>
+                         <div className="flex items-center gap-2">
+                          <MapPin size={14} className="text-gray-400" />
+                          <span>{order.address}</span>
+                        </div>
                       </div>
                     </div>
                     
@@ -382,7 +402,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                      <div className="flex items-center gap-2 text-gray-600">
                         <Package size={16} />
                         <span className="font-medium text-sm">
-                          {t('عدد المنتجات:', 'Items Count:')} {(order.items || []).reduce((a, b) => a + (b.quantity || 0), 0)}
+                          {t('عدد المنتجات:', 'Items Count:')} {order.items.reduce((a, b) => a + b.quantity, 0)}
                         </span>
                      </div>
                      <span className="text-xs text-gray-400">
@@ -404,7 +424,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* 2. ADD PRODUCT TAB */}
+      {/* 2. REPORTS TAB */}
+      {activeTab === 'reports' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <MessageSquareWarning size={24} className="text-red-600" />
+              {t('بلاغات المشاكل', 'Problem Reports')}
+            </h2>
+          </div>
+          
+          {reports.length === 0 ? (
+            <div className="p-16 text-center text-gray-500 flex flex-col items-center">
+              <CheckCircle size={64} className="mb-4 text-gray-200" />
+              <p className="text-lg">{t('لا توجد بلاغات جديدة', 'No new reports')}</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {reports.map((report) => (
+                <div key={report.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-bold text-gray-900">{report.name}</h3>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                           <Calendar size={12} />
+                           {new Date(report.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm text-emerald-600 mb-3" dir="ltr">
+                        <Phone size={14} />
+                        <span>{report.contact}</span>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-700 leading-relaxed">
+                        {report.message}
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(t('هل أنت متأكد من حذف هذا البلاغ؟', 'Are you sure you want to delete this report?'))) {
+                          onDeleteReport(report.id);
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      title={t('حذف البلاغ', 'Delete Report')}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. ADD PRODUCT TAB */}
       {activeTab === 'add_product' && (
         <div className="max-w-3xl mx-auto animate-in fade-in zoom-in duration-300">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
@@ -648,6 +726,159 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* 5. ADS TAB (Formerly Settings) */}
+      {activeTab === 'settings' && (
+        <div className="max-w-3xl mx-auto animate-in fade-in zoom-in duration-300">
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
+                <Megaphone size={24} className="text-emerald-600" />
+                {t('إعلانات الموقع', 'Site Ads')}
+              </h2>
+
+              <div className="space-y-8">
+                {/* Banner Section */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <Megaphone size={16} />
+                    {t('شريط البنر العلوي', 'Top Banner')}
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('نص الشريط المتحرك', 'Scrolling Text')}</label>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        value={bannerText}
+                        onChange={(e) => onUpdateBannerText(e.target.value)}
+                        placeholder={t('أدخل نص البنر هنا...', 'Enter banner text here...')}
+                        className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-emerald-500 outline-none transition-all"
+                      />
+                      <button 
+                        onClick={() => onUpdateBannerText('')}
+                        disabled={!bannerText}
+                        className="px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-200 transition-colors font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={t('حذف الإعلان', 'Delete Ad')}
+                      >
+                        <Trash2 size={20} />
+                        <span className="hidden sm:inline">{t('حذف', 'Delete')}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Popup Ad Section */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <MonitorPlay size={16} />
+                    {t('إعلان منبثق (Popup)', 'Popup Advertisement')}
+                  </h3>
+                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    
+                    <div className="flex items-center gap-3 mb-6">
+                      <input 
+                        type="checkbox"
+                        checked={popupConfig.isActive}
+                        onChange={(e) => onUpdatePopupConfig({...popupConfig, isActive: e.target.checked})}
+                        className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        id="popupActive"
+                      />
+                      <label htmlFor="popupActive" className="font-bold text-gray-900 cursor-pointer">{t('تفعيل الإعلان المنبثق', 'Activate Popup Ad')}</label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                      <div className="space-y-4">
+                        
+                        {/* URL Option Box */}
+                        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm hover:border-blue-200 transition-colors">
+                           <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                             <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                               <Link size={14} />
+                             </div>
+                             {t('رابط الصورة (URL)', 'Image URL')}
+                           </label>
+                           <input
+                            type="text"
+                            value={(popupConfig.image && typeof popupConfig.image === 'string' && popupConfig.image.startsWith('data:')) ? '' : (popupConfig.image || '')}
+                            onChange={(e) => onUpdatePopupConfig({...popupConfig, image: e.target.value})}
+                            placeholder="https://..."
+                            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all"
+                            dir="ltr"
+                          />
+                        </div>
+
+                        {/* Divider */}
+                         <div className="relative flex items-center justify-center py-1">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+                            <span className="bg-gray-50 px-2 text-xs text-gray-400 font-bold uppercase z-10">{t('أو', 'OR')}</span>
+                        </div>
+
+                        {/* Upload Option Box */}
+                        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm hover:border-emerald-200 transition-colors">
+                           <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                             <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                               <Upload size={14} />
+                             </div>
+                             {t('رفع صورة من الجهاز', 'Upload Image')}
+                           </label>
+                           <div className="relative group">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePopupImageUpload}
+                              className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                            />
+                            <div className="absolute right-3 top-2.5 text-gray-400 pointer-events-none group-hover:text-emerald-500 transition-colors">
+                                <Upload size={16} />
+                            </div>
+                           </div>
+                        </div>
+
+                      </div>
+
+                      {/* Preview */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 text-center md:text-right">{t('معاينة الإعلان', 'Ad Preview')}</label>
+                        <div className="relative w-full max-w-[200px] aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 mx-auto md:mx-0 flex items-center justify-center group">
+                          {popupConfig.image ? (
+                            <>
+                              <img src={popupConfig.image} alt="Preview" className="w-full h-full object-cover" />
+                              <button 
+                                type="button"
+                                onClick={() => onUpdatePopupConfig({...popupConfig, image: ''})}
+                                className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-xl"
+                                title={t('حذف الصورة', 'Clear Image')}
+                              >
+                                <X size={20} />
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center text-gray-400 gap-2">
+                              <ImageIcon size={32} />
+                              <span className="text-xs">{t('لا توجد صورة', 'No Image')}</span>
+                            </div>
+                          )}
+                        </div>
+                        {popupConfig.image && (
+                          <div className="mt-2 text-center md:text-right">
+                             <button 
+                              type="button"
+                              onClick={() => onUpdatePopupConfig({...popupConfig, image: ''})}
+                              className="text-xs text-red-500 font-bold hover:underline"
+                            >
+                              {t('إزالة صورة الإعلان', 'Remove Ad Image')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
         </div>
       )}
 
