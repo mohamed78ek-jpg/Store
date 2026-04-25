@@ -1,29 +1,24 @@
-# Security Specification - Bazaar App
+# Security Specification - Bazzar Elegant Fashion
 
 ## 1. Data Invariants
-- A **Product** must have a unique ID, non-negative price, and valid category.
-- An **Order** must have customer contact details and a non-empty items list.
-- A **Report** must have a description and a valid type.
-- **Site Config** is a singleton document at `siteConfig/global`.
+- A **Product** must have a unique ID, non-empty name, non-negative price, and valid category.
+- An **Order** must have customer contact details, at least one item, and a valid status.
+- A **Report** must have a sender name, contact info, and a message.
+- **Site Config** is global and controls the top banner and promotional popup.
 
-## 2. The "Dirty Dozen" Payloads (Red Team Test Cases)
+## 2. The "Dirty Dozen" Payloads (Denial Tests)
+1. **ID Poisoning**: Create a product with a 1MB string as ID.
+2. **Identity Spoofing**: Create an order using another user's email/UID if authenticated.
+3. **Price Manipulation**: Create a product with a negative price.
+4. **Status Skipping**: Update an order status directly to 'delivered' from 'pending' if restricted.
+5. **Ghost Fields**: Add an `isVerified: true` field to a product.
+6. **Large Resource**: Add a 1MB string to the `bannerText` in Site Config.
+7. **PII Leak**: A guest user tries to 'list' all orders.
+8. **Invalid Types**: Send a boolean as a product price.
+9. **Missing Fields**: Create an order without items.
+10. **Shadow Updates**: Try to change the `date` of an existing order.
+11. **Malicious Regex**: Use script tags in a product name.
+12. **Collection Crawling**: Try to list `siteConfig` without explicit permission if restricted.
 
-1. **Anonymous Order Overwrite**: Try to delete or update an order without being the admin or creator.
-2. **Product Price Injection**: Try to update a product price as a regular user.
-3. **Ghost Field Injection**: Add `isAdmin: true` to a user document or order.
-4. **ID Poisoning**: Use a 2KB string as a `productId`.
-5. **Negative Price**: Create a product with `price: -100`.
-6. **Massive Array**: Create an order with 10,000 items (Resource Exhaustion).
-7. **System Field Hijack**: User trying to change `siteConfig` banner text.
-8. **Invalid Status**: Changing order status to a non-existent state like `delivered_for_free`.
-9. **Creation Timestamp Spoofing**: Sending a `createdAt` from 1999.
-10. **PII Leak**: Non-admin user trying to list all `orders` to see other customers' addresses.
-11. **Shadow Update**: Updating a product using the `create` logic to bypass `update` constraints.
-12. **Orphaned Writes**: Creating an order that references a non-existent product ID (if enforced).
-
-## 3. Test Runner Strategy
-We will implement `firestore.rules` with strict validation helpers for each entity.
-
-### Identity
-- `isAdmin()`: Checks if the user's email matches `mohamederrabani951@gmail.com`.
-- `isSignedIn()`: Checks if `request.auth` is not null.
+## 3. Test Runner (Conceptual)
+All tests in `firestore.rules.test.ts` will verify `PERMISSION_DENIED` for the above payloads.

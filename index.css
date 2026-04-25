@@ -4,6 +4,20 @@
 @theme {
   --font-tajawal: "Tajawal", sans-serif;
   --font-inter: "Inter", sans-serif;
+  --animate-marquee: marquee 25s linear infinite;
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation: var(--animate-marquee);
+    width: max-content;
+    display: inline-block;
+  }
 }
 
 @layer base {

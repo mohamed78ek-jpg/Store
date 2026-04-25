@@ -71,29 +71,12 @@ function App() {
         } as Product;
       }).filter((p): p is Product => p !== null);
       
-      console.log(`Received ${data.length} products from Firestore`, data.map(p => p.id));
+      console.log(`Received ${data.length} products from Firestore`);
       
-      // Cleanup legacy mock products (IDs 1-5 or common mock names) if they exist
-      const mockIds = ['1', '2', '3', '4', '5'];
-      const mocks = data.filter(p => {
-        const idNum = Number(p.id);
-        return mockIds.includes(String(p.id)) || (!isNaN(idNum) && idNum < 1000);
-      });
-      
-      if (mocks.length > 0) {
-        console.log(`Cleaning up ${mocks.length} mock products`);
-        const batch = writeBatch(db);
-        mocks.forEach(m => {
-          if (m && m.id) batch.delete(doc(db, 'products', m.id));
-        });
-        batch.commit().catch(() => {});
-      }
+      // Removed automatic cleanup of mock products as it causes race conditions and permission errors for public users
 
-      // Sort products: Newer products (higher ID which is timestamp) first
-      const sorted = data.filter(p => {
-        const idNum = Number(p.id);
-        return p && !mockIds.includes(String(p.id)) && (isNaN(idNum) || idNum >= 1000);
-      }).sort((a, b) => {
+      // Sort products: Newer products first
+      const sorted = data.sort((a, b) => {
         const idA = Number(a.id);
         const idB = Number(b.id);
         if (!isNaN(idA) && !isNaN(idB)) {
@@ -102,7 +85,6 @@ function App() {
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
-      console.log(`Setting state with ${sorted.length} active products`);
       setProducts(sorted);
     }, (error: any) => {
       console.error("Products listener error:", error);
@@ -275,6 +257,7 @@ function App() {
       showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (error: any) {
+      console.error("Order placement error:", error);
       showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
     }
   };
@@ -507,11 +490,12 @@ function App() {
         </div>
       )}
       {bannerText && (
-        <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
-          <div className="max-w-[999px] w-full mx-auto overflow-hidden">
-             <div className="animate-marquee inline-block whitespace-nowrap text-sm font-bold tracking-wide w-full text-center">
-               <span className="px-4">{bannerText}</span>
-             </div>
+        <div className="bg-gray-900 text-white h-[44px] flex items-center overflow-hidden relative z-40 w-full">
+          <div className="animate-marquee whitespace-nowrap text-sm font-bold tracking-wide py-2">
+            <span className="px-12">{bannerText}</span>
+            <span className="px-12">{bannerText}</span>
+            <span className="px-12">{bannerText}</span>
+            <span className="px-12">{bannerText}</span>
           </div>
         </div>
       )}
