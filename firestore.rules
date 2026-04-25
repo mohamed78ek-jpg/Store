@@ -36,15 +36,15 @@ service cloud.firestore {
     function isValidProduct(data) {
       let requiredFields = ['id', 'name', 'price', 'image', 'category', 'description'];
       return data.keys().hasAll(requiredFields) &&
-             data.keys().size() >= 6 && data.keys().size() <= 8 &&
+             data.keys().size() >= 6 && data.keys().size() <= 10 &&
              data.id is string && isValidId(data.id) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 1000 &&
              data.price is number && data.price >= 0 &&
-             data.image is string && data.image.size() <= 1048576 &&
-             data.category is string && data.category.size() <= 50 &&
-             data.description is string && data.description.size() <= 2000 &&
+             data.image is string && data.image.size() <= 10485760 &&
+             data.category is string && data.category.size() <= 200 &&
+             data.description is string && data.description.size() <= 10000 &&
              (!('discountPrice' in data) || (data.discountPrice is number && data.discountPrice >= 0)) &&
-             (!('sizes' in data) || (data.sizes is list && data.sizes.size() <= 20));
+             (!('sizes' in data) || (data.sizes is list && data.sizes.size() <= 50));
     }
 
     function isValidOrder(data) {
