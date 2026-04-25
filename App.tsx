@@ -129,27 +129,17 @@ function App() {
     let unsubReports: (() => void) | null = null;
 
     if (isAdminUser) {
-      console.log("Setting up admin listeners...");
       unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
         setIsOffline(false);
-        const fetchedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-        // Sort by date newest first
-        const sortedOrders = fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        console.log(`Admin fetched ${sortedOrders.length} orders`);
-        setOrders(sortedOrders);
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
       }, (error: any) => {
         console.error("Orders listener error:", error);
-        if (error.code === 'permission-denied') {
-          console.error("Permission denied for orders collection. Check Firestore rules.");
-        }
         if (error.code === 'unavailable') setIsOffline(true);
       });
 
       unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
         setIsOffline(false);
-        const fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-        const sortedReports = fetchedReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setReports(sortedReports);
+        setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
       }, (error: any) => {
         console.error("Reports listener error:", error);
         if (error.code === 'unavailable') setIsOffline(true);
