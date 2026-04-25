@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
-import { loginWithGoogle, logout } from '../lib/firebase';
+import { logout } from '../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -79,15 +79,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleFullLogout = async () => {
     await logout();
     onLogin(false);
-  };
-
-  const handleAdminGoogleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      onLogin(true);
-    } catch (e) {
-      setError(t('فشل تسجيل الدخول عبر جوجل', 'Google Login Failed'));
-    }
   };
 
   // Predefined Categories
@@ -217,21 +208,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 type="submit"
                 className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
               >
-                {t('دخول المسؤول (تجريبي)', 'Admin Login (Demo)')}
-              </button>
-
-              <div className="relative my-6 text-center">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-                <span className="relative px-4 bg-white text-gray-400 text-xs uppercase">{t('أو', 'OR')}</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAdminGoogleLogin}
-                className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
-              >
-                <ImageIcon size={20} className="text-red-500" />
-                {t('الدخول عبر جوجل (لإدارة الطلبات)', 'Login with Google (Manage Orders)')}
+                {t('دخول المسؤول', 'Admin Login')}
               </button>
             </form>
         </div>

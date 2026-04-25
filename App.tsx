@@ -56,10 +56,7 @@ function App() {
   }, [isManualAdmin, firebaseUser]);
 
   // Genuine Firestore Access Guard (for sensitive collections)
-  const canAccessSensitiveData = useMemo(() => {
-    // Firestore rules require genuine Firebase Auth for orders/reports
-    return firebaseUser && adminEmails.includes(firebaseUser.email || '');
-  }, [firebaseUser]);
+  const canAccessSensitiveData = isAdminUser;
 
   // Firestore Data Listeners
   useEffect(() => {
@@ -503,11 +500,6 @@ function App() {
       className={`min-h-screen bg-gray-50 pb-0 font-${language === 'ar' ? 'tajawal' : 'sans'} flex flex-col`}
     >
       {/* Top Banner */}
-      {isOffline && (
-        <div className="bg-amber-600 text-white py-2 text-center text-xs font-bold animate-pulse">
-          {t('أنت تعمل في وضع عدم الاتصال. قد لا تكون البيانات محدثة.', 'You are operating in offline mode. Data may not be up to date.')}
-        </div>
-      )}
       {bannerText && (
         <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
           <div className="max-w-[999px] w-full mx-auto overflow-hidden">
