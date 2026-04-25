@@ -420,6 +420,7 @@ function App() {
       case ViewState.TRACK_ORDER:
         return (
           <TrackOrder 
+            orders={orders}
             onBack={() => setCurrentView(ViewState.HOME)}
             language={language}
           />

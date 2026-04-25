@@ -1,58 +1,31 @@
 import React, { useState } from 'react';
 import { Order, Language, OrderStatus } from '../types';
-import { Search, Package, Truck, CheckCircle, Clock, XCircle, ArrowRight, Loader2 } from 'lucide-react';
-import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { Search, Package, Truck, CheckCircle, Clock, XCircle, ArrowRight } from 'lucide-react';
 
 interface TrackOrderProps {
+  orders: Order[];
   onBack: () => void;
   language: Language;
 }
 
-export const TrackOrder: React.FC<TrackOrderProps> = ({ onBack, language }) => {
+export const TrackOrder: React.FC<TrackOrderProps> = ({ orders, onBack, language }) => {
   const [orderId, setOrderId] = useState('');
   const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedId = orderId.trim();
-    if (!trimmedId) return;
+    if (!orderId.trim()) return;
 
-    setIsLoading(true);
-    setError('');
-    setSearchedOrder(null);
-
-    try {
-      // First try fetching by document ID
-      let orderDoc = await getDoc(doc(db, 'orders', trimmedId));
-      
-      if (orderDoc.exists()) {
-        const orderData = orderDoc.data() as Order;
-        setSearchedOrder({ ...orderData, id: orderDoc.id });
-      } else {
-        // Fallback: search for a document where field 'id' matches the input
-        // This is useful if orders were created with auto-IDs but have the numeric ID as a field
-        const { collection, query, where, getDocs, limit } = await import('firebase/firestore');
-        const q = query(collection(db, 'orders'), where('id', '==', trimmedId), limit(1));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          const orderData = doc.data() as Order;
-          setSearchedOrder({ ...orderData, id: doc.id });
-        } else {
-          setError(t('لم يتم العثور على طلب بهذا الرقم. يرجى التحقق والمحاولة مرة أخرى.', 'Order not found. Please check the ID and try again.'));
-        }
-      }
-    } catch (err) {
-      console.error("Order tracking error:", err);
-      setError(t('حدث خطأ أثناء البحث عن الطلب. يرجى المحاولة لاحقاً.', 'An error occurred while searching for the order. Please try again later.'));
-    } finally {
-      setIsLoading(false);
+    const order = orders.find(o => o.id === orderId.trim());
+    if (order) {
+      setSearchedOrder(order);
+      setError('');
+    } else {
+      setSearchedOrder(null);
+      setError(t('لم يتم العثور على طلب بهذا الرقم. يرجى التحقق والمحاولة مرة أخرى.', 'Order not found. Please check the ID and try again.'));
     }
   };
 
@@ -105,10 +78,9 @@ export const TrackOrder: React.FC<TrackOrderProps> = ({ onBack, language }) => {
           />
           <button 
             type="submit"
-            disabled={isLoading}
-            className="bg-emerald-600 text-white px-8 font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center disabled:opacity-50"
+            className="bg-emerald-600 text-white px-8 font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+            <Search size={20} />
           </button>
         </form>
         {error && <p className="text-red-500 text-center mt-4 font-medium animate-in fade-in slide-in-from-top-2">{error}</p>}
