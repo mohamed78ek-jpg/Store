@@ -33,7 +33,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
+          className="w-full h-full object-cover transform transition-transform duration-700 ease-out group-hover:scale-125"
           loading="lazy"
         />
         {hasDiscount && (
