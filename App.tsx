@@ -33,14 +33,33 @@ function App() {
   const [isOffline, setIsOffline] = useState(false);
 
   const [showAdPopup, setShowAdPopup] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isManualAdmin, setIsManualAdmin] = useState(() => {
     return localStorage.getItem('is_admin') === 'true';
   });
 
-  // isAdminUser now depends on manual login state
+  // Track Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      console.log("Firebase Auth State Changed:", user ? "Signed In" : "Signed Out");
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const adminEmails = ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'];
+
+  // isAdminUser now depends on manual login state OR genuine firebase admin state
   const isAdminUser = useMemo(() => {
-    return isManualAdmin;
-  }, [isManualAdmin]);
+    const isFirebaseAdmin = firebaseUser && adminEmails.includes(firebaseUser.email || '');
+    return isManualAdmin || isFirebaseAdmin;
+  }, [isManualAdmin, firebaseUser]);
+
+  // Genuine Firestore Access Guard (for sensitive collections)
+  const canAccessSensitiveData = useMemo(() => {
+    // Firestore rules require genuine Firebase Auth for orders/reports
+    return firebaseUser && adminEmails.includes(firebaseUser.email || '');
+  }, [firebaseUser]);
 
   // Firestore Data Listeners
   useEffect(() => {
@@ -110,7 +129,7 @@ function App() {
     let unsubOrders: (() => void) | null = null;
     let unsubReports: (() => void) | null = null;
 
-    if (isAdminUser) {
+    if (canAccessSensitiveData) {
       unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
         setIsOffline(false);
         setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
@@ -138,7 +157,7 @@ function App() {
       if (unsubOrders) unsubOrders();
       if (unsubReports) unsubReports();
     };
-  }, [isAdminUser]);
+  }, [canAccessSensitiveData]);
 
   // Handle Direction and Language
   useEffect(() => {
