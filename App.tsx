@@ -12,7 +12,6 @@ import { Search, Mail, Banknote } from 'lucide-react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from './lib/firestoreUtils';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
@@ -130,32 +129,17 @@ function App() {
     let unsubReports: (() => void) | null = null;
 
     if (isAdminUser) {
-      console.log("Setting up admin listeners...");
       unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
         setIsOffline(false);
-        const fetchedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-        // Sort by date newest first
-        const sortedOrders = fetchedOrders.sort((a, b) => {
-          const tA = a.date ? new Date(a.date).getTime() : 0;
-          const tB = b.date ? new Date(b.date).getTime() : 0;
-          if (isNaN(tA) || isNaN(tB)) return String(b.id || '').localeCompare(String(a.id || ''));
-          return tB - tA;
-        });
-        console.log(`Admin fetched ${sortedOrders.length} orders`);
-        setOrders(sortedOrders);
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
       }, (error: any) => {
         console.error("Orders listener error:", error);
-        if (error.code === 'permission-denied') {
-          console.error("Permission denied for orders collection. Check Firestore rules.");
-        }
         if (error.code === 'unavailable') setIsOffline(true);
       });
 
       unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
         setIsOffline(false);
-        const fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-        const sortedReports = fetchedReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setReports(sortedReports);
+        setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
       }, (error: any) => {
         console.error("Reports listener error:", error);
         if (error.code === 'unavailable') setIsOffline(true);
@@ -286,14 +270,11 @@ function App() {
     };
     
     try {
-      console.log("Placing order:", newOrder);
       await setDoc(doc(db, 'orders', orderId), newOrder);
       setCart([]); 
       showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (error: any) {
-      console.error("Order placement error:", error);
-      handleFirestoreError(error, OperationType.WRITE, `orders/${orderId}`);
       showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
     }
   };
