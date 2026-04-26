@@ -85,29 +85,29 @@ service cloud.firestore {
     match /products/{productId} {
       allow get: if isValidId(productId);
       allow list: if true;
-      allow create, update: if isValidProduct(incoming()); 
-      allow delete: if true;
+      allow create, update: if isAdmin() && isValidProduct(incoming()); 
+      allow delete: if isAdmin();
     }
 
     match /orders/{orderId} {
       allow get: if isValidId(orderId);
-      allow list: if true; 
+      allow list: if isAdmin(); // Orders are sensitive
       allow create: if isValidOrder(incoming());
-      allow update: if isValidOrder(incoming()); // Relaxed for manual admin
-      allow delete: if true; // Relaxed for manual admin
+      allow update: if isAdmin() && isValidOrder(incoming());
+      allow delete: if isAdmin();
     }
 
     match /reports/{reportId} {
       allow get: if isValidId(reportId);
-      allow list: if true; 
+      allow list: if isAdmin(); 
       allow create: if isValidReport(incoming());
-      allow update: if isValidReport(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-      allow delete: if true; // Relaxed for manual admin
+      allow update: if isAdmin() && isValidReport(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+      allow delete: if isAdmin();
     }
 
     match /siteConfig/{docId} {
       allow read: if true;
-      allow write: if isValidConfig(incoming());
+      allow write: if isAdmin() && isValidConfig(incoming());
     }
   }
 }

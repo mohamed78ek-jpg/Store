@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
+import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, AlertTriangle, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
 import { logout } from '../lib/firebase';
@@ -21,6 +21,8 @@ interface AdminDashboardProps {
   onDeleteReport: (reportId: string) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
+  firebaseUser: any;
+  onGoogleLogin: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -39,7 +41,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRemoveOrder,
   onDeleteReport,
   isAuthenticated,
-  onLogin
+  onLogin,
+  firebaseUser,
+  onGoogleLogin
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -80,6 +84,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     await logout();
     onLogin(false);
   };
+
+  const isFirebaseVerifiedAdmin = firebaseUser && ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'].includes(firebaseUser.email || '');
 
   // Predefined Categories
   const CATEGORIES = ['رجال', 'أطفال', 'أحذية', 'اكسسوارات'];
@@ -220,14 +226,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">{t('لوحة تحكم الإدارة', 'Admin Dashboard')}</h1>
-        <button 
-          onClick={handleFullLogout}
-          className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
-        >
-          <LogOut size={20} />
-          <span>{t('تسجيل خروج', 'Logout')}</span>
-        </button>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Firestore Auth Status */}
+          {firebaseUser ? (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${isFirebaseVerifiedAdmin ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              <ShieldCheck size={14} />
+              <span>{isFirebaseVerifiedAdmin ? t(`مرحبًا ${firebaseUser.email}`, `Logged in as ${firebaseUser.email}`) : t('حساب غير مصرح له بالحفظ', 'Account not authorized for DB writes')}</span>
+            </div>
+          ) : (
+            <button 
+              onClick={onGoogleLogin}
+              className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-blue-100 shadow-sm"
+            >
+              <ImageIcon size={14} />
+              <span>{t('ربط بحساب جوجل (للحفظ الادي)', 'Link Google Account (Required for saving)')}</span>
+            </button>
+          )}
+
+          <button 
+            onClick={handleFullLogout}
+            className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors font-bold"
+          >
+            <LogOut size={20} />
+            <span>{t('تسجيل خروج', 'Logout')}</span>
+          </button>
+        </div>
       </div>
+
+      {!isFirebaseVerifiedAdmin && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
+          <AlertTriangle className="flex-shrink-0" />
+          <p className="text-sm font-bold">
+            {t('تنبيه: يجب تسجيل الدخول بحساب الجوجل المعتمد ليتم حفظ المنتجات والتعديلات في قاعدة البيانات بنجاح.', 'Note: You must sign in with the authorized Google account to save products and changes to the database successfully.')}
+          </p>
+        </div>
+      )}
 
       {/* Navigation Tabs - Reorganized */}
 

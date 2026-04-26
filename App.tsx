@@ -9,7 +9,7 @@ import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
-import { auth, db } from './lib/firebase';
+import { auth, db, handleFirestoreError, OperationType, loginWithGoogle } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
@@ -181,7 +181,7 @@ function App() {
 
   // Extract unique categories from products state
   const categories = useMemo(() => {
-    const allCategories = products.map(p => p.category);
+    const allCategories = products.map(p => p.category).filter(c => c && c.trim() !== '');
     return ['All', ...new Set(allCategories)];
   }, [products]);
 
@@ -310,7 +310,11 @@ function App() {
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
       console.error("Add product error:", error);
-      showNotification(t('فشل في إضافة المنتج', 'Failed to add product'));
+      if (error.message?.includes('permission-denied') || error.code === 'permission-denied') {
+        showNotification(t('خطأ في الصلاحيات. تأكد من تسجيل دخولك بحساب Google المعتمد.', 'Permission denied. Make sure you are logged in with the authorized Google account.'));
+      } else {
+        showNotification(t('فشل في إضافة المنتج. تأكد من جودة الاتصال وحجم البيانات.', 'Failed to add product. Check connection and data size.'));
+      }
     }
   };
 
@@ -382,6 +386,15 @@ function App() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      showNotification(t('تم تسجيل الدخول بنجاح', 'Logged in successfully'));
+    } catch (error) {
+      showNotification(t('فشل تسجيل الدخول', 'Login failed'));
+    }
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case ViewState.ADMIN:
@@ -403,6 +416,8 @@ function App() {
             onDeleteReport={handleDeleteReport}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
+            firebaseUser={firebaseUser}
+            onGoogleLogin={handleGoogleLogin}
           />
         );
       case ViewState.CART:
