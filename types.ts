@@ -8,6 +8,8 @@ export interface Product {
   description: string;
   sizes?: string[];
   isHidden?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CartItem extends Product {

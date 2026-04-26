@@ -120,7 +120,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         category: newProduct.category,
         image: newProduct.image,
         description: newProduct.description || '',
-        sizes: sizesArray
+        sizes: sizesArray,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
       setNewProduct({ name: '', price: 0, discountPrice: 0, category: '', image: '', description: '', sizesString: '' });
       setImageError('');

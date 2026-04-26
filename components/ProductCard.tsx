@@ -33,12 +33,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover transition-opacity duration-300"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${product.isHidden ? 'opacity-40 grayscale' : ''}`}
           loading="lazy"
         />
         {hasDiscount && (
           <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-sm">
              {t('خصم', 'Sale')} {Math.round(((product.price - product.discountPrice!) / product.price) * 100)}%
+          </div>
+        )}
+        {product.isHidden && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+             <div className="bg-amber-500 text-white text-[8px] sm:text-[10px] font-bold px-2 py-1 rounded-full shadow-lg border border-white/20">
+               {t('مخفي عن الزبائن', 'Hidden')}
+             </div>
           </div>
         )}
       </div>

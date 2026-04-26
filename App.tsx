@@ -15,8 +15,16 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch }
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const savedCart = localStorage.getItem('app_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Persist cart
+  useEffect(() => {
+    localStorage.setItem('app_cart', JSON.stringify(cart));
+  }, [cart]);
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,7 +92,9 @@ function App() {
           price: Number(docData.price || 0),
           discountPrice: docData.discountPrice ? Number(docData.discountPrice) : undefined,
           sizes: Array.isArray(docData.sizes) ? docData.sizes : [],
-          isHidden: !!docData.isHidden
+          isHidden: !!docData.isHidden,
+          createdAt: docData.createdAt ? String(docData.createdAt) : undefined,
+          updatedAt: docData.updatedAt ? String(docData.updatedAt) : undefined
         } as Product;
       }).filter((p): p is Product => p !== null);
       
@@ -94,11 +104,19 @@ function App() {
 
       // Sort products: Newer products first
       const sorted = data.sort((a, b) => {
+        // Prefer explicit createdAt if available
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        
+        // Fallback to ID-based numeric comparison
         const idA = Number(a.id);
         const idB = Number(b.id);
         if (!isNaN(idA) && !isNaN(idB)) {
           return idB - idA;
         }
+        
+        // Final fallback to string comparison
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
