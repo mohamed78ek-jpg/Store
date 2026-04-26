@@ -41,6 +41,22 @@ function App() {
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [isOffline, setIsOffline] = useState(false);
 
+  // Firestore Error Handler as per instructions
+  const handleFirestoreError = (error: any, operation: string, path: string | null) => {
+    const errInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email,
+        emailVerified: auth.currentUser?.emailVerified,
+      },
+      operationType: operation,
+      path: path
+    };
+    console.error(`Firestore Error [${operation}]:`, JSON.stringify(errInfo, null, 2));
+    return errInfo;
+  };
+
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isManualAdmin, setIsManualAdmin] = useState(() => {
@@ -124,7 +140,7 @@ function App() {
       setProducts(sorted);
       setLoadingProducts(false);
     }, (error: any) => {
-      console.error("Products listener error:", error);
+      handleFirestoreError(error, 'list', 'products');
       setLoadingProducts(false);
       if (error.code === 'unavailable') setIsOffline(true);
     });
@@ -153,7 +169,7 @@ function App() {
         setIsOffline(false);
         setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
       }, (error: any) => {
-        console.error("Orders listener error:", error);
+        handleFirestoreError(error, 'list', 'orders');
         if (error.code === 'unavailable') setIsOffline(true);
       });
 
@@ -161,7 +177,7 @@ function App() {
         setIsOffline(false);
         setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
       }, (error: any) => {
-        console.error("Reports listener error:", error);
+        handleFirestoreError(error, 'list', 'reports');
         if (error.code === 'unavailable') setIsOffline(true);
       });
     } else {
@@ -244,7 +260,7 @@ function App() {
       });
     }
     return result;
-  }, [selectedCategory, searchQuery, language, products]);
+  }, [selectedCategory, searchQuery, language, products, isAdminUser]);
 
   const showNotification = (message: string) => {
     setNotification(message);
@@ -303,7 +319,7 @@ function App() {
       showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (error: any) {
-      console.error("Order placement error:", error);
+      handleFirestoreError(error, 'create', `orders/${orderId}`);
       showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
     }
   };
@@ -339,8 +355,8 @@ function App() {
       await setDoc(doc(db, 'products', productData.id), productData);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
-      console.error("Add product error:", error);
-      if (error.message?.includes('permission-denied') || error.code === 'permission-denied') {
+      const errInfo = handleFirestoreError(error, 'create', `products/${productData.id}`);
+      if (errInfo.error.includes('permission-denied')) {
         showNotification(t('خطأ في الصلاحيات. تأكد من تسجيل دخولك بحساب Google المعتمد.', 'Permission denied. Make sure you are logged in with the authorized Google account.'));
       } else {
         showNotification(t('فشل في إضافة المنتج. تأكد من جودة الاتصال وحجم البيانات.', 'Failed to add product. Check connection and data size.'));

@@ -87,9 +87,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onLogin(false);
   };
 
-  const isFirebaseVerifiedAdmin = firebaseUser && ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'].includes(firebaseUser.email || '');
+  const isFirebaseVerifiedAdmin = firebaseUser && ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'].includes((firebaseUser.email || '').toLowerCase());
 
-  // Predefined Categories
+  // Check if we have active subscriptions for sensitive data
+  const hasDataSync = isFirebaseVerifiedAdmin && orders.length >= 0;
   const CATEGORIES = ['رجال', 'أطفال', 'أحذية', 'اكسسوارات'];
 
   const STATUSES: { value: OrderStatus; labelAr: string; labelEn: string; color: string }[] = [
@@ -306,11 +307,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {!isFirebaseVerifiedAdmin && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
-          <TriangleAlert className="flex-shrink-0" />
-          <p className="text-sm font-bold">
-            {t('تنبيه: يجب تسجيل الدخول بحساب الجوجل المعتمد ليتم حفظ المنتجات والتعديلات في قاعدة البيانات بنجاح.', 'Note: You must sign in with the authorized Google account to save products and changes to the database successfully.')}
-          </p>
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 shadow-sm">
+          <TriangleAlert className="flex-shrink-0 text-amber-600" size={24} />
+          <div>
+            <p className="font-bold text-base">
+              {t('مطلوب تسجيل الدخول بجوجل', 'Google Login Required')}
+            </p>
+            <p className="text-sm">
+              {t('عرض الطلبات وإضافة المنتجات يتطلب تسجيل الدخول بحساب Google المعتمد لمزامنة البيانات مع السيرفر.', 'Viewing orders and adding products requires signing in with an authorized Google account to sync data with the server.')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isFirebaseVerifiedAdmin && (
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-emerald-600" size={24} />
+            <div>
+              <p className="font-bold text-sm">
+                {t('متصل ومصرح له', 'Connected & Authorized')}
+              </p>
+              <p className="text-xs opacity-80">
+                {t('يتم الآن استقبال الطلبات والتقارير في الوقت الفعلي.', 'Receiving orders and reports in real-time.')}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 text-[10px] font-mono bg-white/50 px-2 py-1 rounded border border-emerald-100">
+             <span>OBJ: {products.length} P | {orders.length} O | {reports.length} R</span>
+          </div>
         </div>
       )}
 
