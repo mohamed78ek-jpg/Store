@@ -112,13 +112,20 @@ try {
 export const db = firestoreDb;
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const loginWithGoogle = async () => {
   try {
+    console.log("Attempting Google Sign-In with Popup...");
     const result = await signInWithPopup(auth, googleProvider);
+    console.log("Google Sign-In Successful for user:", result.user.email);
     return result.user;
-  } catch (error) {
-    console.error("Login failed:", error);
+  } catch (error: any) {
+    console.error("Firebase Login Error Details:", {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 };

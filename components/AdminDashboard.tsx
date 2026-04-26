@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, AlertTriangle, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
+import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
 import { logout } from '../lib/firebase';
@@ -216,9 +216,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors"
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm"
               >
                 {t('دخول المسؤول', 'Admin Login')}
+              </button>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">{t('أو', 'OR')}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onGoogleLogin}
+                className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                {t('تسجيل الدخول عبر جوجل', 'Login with Google')}
               </button>
             </form>
         </div>
@@ -260,7 +278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {!isFirebaseVerifiedAdmin && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
-          <AlertTriangle className="flex-shrink-0" />
+          <TriangleAlert className="flex-shrink-0" />
           <p className="text-sm font-bold">
             {t('تنبيه: يجب تسجيل الدخول بحساب الجوجل المعتمد ليتم حفظ المنتجات والتعديلات في قاعدة البيانات بنجاح.', 'Note: You must sign in with the authorized Google account to save products and changes to the database successfully.')}
           </p>

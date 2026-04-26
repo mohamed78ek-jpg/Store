@@ -424,10 +424,19 @@ function App() {
 
   const handleGoogleLogin = async () => {
     try {
+      console.log("Starting Google Login...");
       await loginWithGoogle();
       showNotification(t('تم تسجيل الدخول بنجاح', 'Logged in successfully'));
-    } catch (error) {
-      showNotification(t('فشل تسجيل الدخول', 'Login failed'));
+    } catch (error: any) {
+      console.error("Detailed Login Error:", error);
+      const errorMsg = error.message || String(error);
+      if (errorMsg.includes('popup-closed-by-user')) {
+        showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
+      } else if (errorMsg.includes('unauthorized-domain')) {
+        showNotification(t('النطاق غير مصرح به في Firebase', 'This domain is not authorized in Firebase Console'));
+      } else {
+        showNotification(t(`فشل تسجيل الدخول: ${errorMsg}`, `Login failed: ${errorMsg}`));
+      }
     }
   };
 

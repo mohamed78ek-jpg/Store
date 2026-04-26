@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, AlertTriangle } from 'lucide-react';
+import { Home, X, Globe, ChevronRight, ChevronLeft, Lock, SearchCheck, TriangleAlert } from 'lucide-react';
 import { ViewState, Language } from '../types';
 
 interface SidebarProps {
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all group text-gray-700 hover:text-red-600"
             >
               <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
-                <AlertTriangle size={20} />
+                <TriangleAlert size={20} />
               </div>
               <span className="font-medium text-lg">
                 {language === 'ar' ? 'أبلغ عن مشكلة' : 'Report Problem'}

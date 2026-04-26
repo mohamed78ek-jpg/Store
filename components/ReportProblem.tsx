@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Language, Report } from '../types';
-import { Send, AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react';
+import { Send, TriangleAlert, ArrowRight, CheckCircle } from 'lucide-react';
 
 interface ReportProblemProps {
   onSubmit: (report: Omit<Report, 'id' | 'date' | 'isRead'>) => void;
@@ -61,7 +61,7 @@ export const ReportProblem: React.FC<ReportProblemProps> = ({ onSubmit, onBack, 
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="bg-gray-50 p-8 border-b border-gray-100">
           <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600 mb-4">
-            <AlertTriangle size={24} />
+            <TriangleAlert size={24} />
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{t('أبلغ عن مشكلة', 'Report a Problem')}</h1>
           <p className="text-gray-500">
