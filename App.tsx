@@ -56,7 +56,7 @@ function App() {
   }, [isManualAdmin, firebaseUser]);
 
   // Genuine Firestore Access Guard (for sensitive collections)
-  const canAccessSensitiveData = isAdminUser;
+  const canAccessSensitiveData = !!firebaseUser && isAdminUser;
 
   // Firestore Data Listeners
   useEffect(() => {
@@ -83,7 +83,8 @@ function App() {
           image: String(docData.image || ''),
           price: Number(docData.price || 0),
           discountPrice: docData.discountPrice ? Number(docData.discountPrice) : undefined,
-          sizes: Array.isArray(docData.sizes) ? docData.sizes : []
+          sizes: Array.isArray(docData.sizes) ? docData.sizes : [],
+          isHidden: !!docData.isHidden
         } as Product;
       }).filter((p): p is Product => p !== null);
       
@@ -181,9 +182,11 @@ function App() {
 
   // Extract unique categories from products state
   const categories = useMemo(() => {
-    const allCategories = products.map(p => p.category).filter(c => c && c.trim() !== '');
+    // Only use visible products for categories if not admin
+    const visibleProducts = isAdminUser ? products : products.filter(p => !p.isHidden);
+    const allCategories = visibleProducts.map(p => p.category).filter(c => c && c.trim() !== '');
     return ['All', ...new Set(allCategories)];
-  }, [products]);
+  }, [products, isAdminUser]);
 
   const getCategoryLabel = (cat: string) => {
     if (!cat) return '';
@@ -200,6 +203,12 @@ function App() {
 
   const filteredProducts = useMemo(() => {
     let result = products || [];
+    
+    // Filter out hidden products for non-admins
+    if (!isAdminUser) {
+      result = result.filter(p => !p.isHidden);
+    }
+
     if (selectedCategory && selectedCategory !== 'All') {
       result = result.filter(p => p && p.category === selectedCategory);
     }
@@ -360,6 +369,15 @@ function App() {
     }
   };
 
+  const handleToggleProductVisibility = async (productId: string, isHidden: boolean) => {
+    try {
+      await updateDoc(doc(db, 'products', productId), { isHidden });
+      showNotification(isHidden ? t('تم إخفاء المنتج عن الزبائن', 'Product hidden from customers') : t('تم إظهار المنتج للزبائن', 'Product visible to customers'));
+    } catch (error: any) {
+      showNotification(t('فشل في تحديث حالة ظهور المنتج', 'Failed to update product visibility'));
+    }
+  };
+
   const handleRemoveOrder = async (id: string) => {
     try {
       setOrders(prev => prev.filter(o => o.id !== id));
@@ -414,6 +432,7 @@ function App() {
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onRemoveOrder={handleRemoveOrder}
             onDeleteReport={handleDeleteReport}
+            onToggleVisibility={handleToggleProductVisibility}
             isAuthenticated={isManualAdmin}
             onLogin={setIsManualAdmin}
             firebaseUser={firebaseUser}

@@ -19,6 +19,7 @@ interface AdminDashboardProps {
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onRemoveOrder: (orderId: string) => void;
   onDeleteReport: (reportId: string) => void;
+  onToggleVisibility: (productId: string, isHidden: boolean) => void;
   isAuthenticated: boolean;
   onLogin: (status: boolean) => void;
   firebaseUser: any;
@@ -40,6 +41,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateOrderStatus,
   onRemoveOrder,
   onDeleteReport,
+  onToggleVisibility,
   isAuthenticated,
   onLogin,
   firebaseUser,
@@ -733,17 +735,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   )}
                 </div>
 
-                <button 
-                  onClick={() => {
-                    if (window.confirm(t('هل أنت متأكد من حذف هذا المنتج نهائياً؟', 'Are you sure you want to delete this product permanently?'))) {
-                      onRemoveProduct(product.id);
-                    }
-                  }}
-                  className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
-                  title={t('حذف', 'Delete')}
-                >
-                  <Trash2 size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => onToggleVisibility(product.id, !product.isHidden)}
+                    className={`p-3 rounded-xl transition-all border ${product.isHidden ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100'}`}
+                    title={product.isHidden ? t('إظهار للزبائن', 'Show to customers') : t('إخفاء عن الزبائن', 'Hide from customers')}
+                  >
+                    {product.isHidden ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(t('هل أنت متأكد من حذف هذا المنتج نهائياً؟', 'Are you sure you want to delete this product permanently?'))) {
+                        onRemoveProduct(product.id);
+                      }
+                    }}
+                    className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                    title={t('حذف', 'Delete')}
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
             ))}
             

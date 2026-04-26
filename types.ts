@@ -7,6 +7,7 @@ export interface Product {
   image: string;
   description: string;
   sizes?: string[];
+  isHidden?: boolean;
 }
 
 export interface CartItem extends Product {
