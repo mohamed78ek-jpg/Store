@@ -34,6 +34,7 @@ function App() {
   
   // Firebase State
   const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [bannerText, setBannerText] = useState('أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م');
@@ -121,8 +122,10 @@ function App() {
       });
       
       setProducts(sorted);
+      setLoadingProducts(false);
     }, (error: any) => {
       console.error("Products listener error:", error);
+      setLoadingProducts(false);
       if (error.code === 'unavailable') setIsOffline(true);
     });
 
@@ -527,16 +530,30 @@ function App() {
 
             {/* Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-4 lg:gap-6">
-              {filteredProducts.map(product => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  onAddToCart={handleAddToCart} 
-                  language={language}
-                />
-              ))}
+              {loadingProducts ? (
+                // Skeleton Loading
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+                    <div className="aspect-[3/4] bg-gray-200" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      <div className="h-4 bg-gray-200 rounded w-1/2" />
+                      <div className="h-8 bg-gray-200 rounded-xl w-full" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredProducts.map(product => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    onAddToCart={handleAddToCart} 
+                    language={language}
+                  />
+                ))
+              )}
               
-              {filteredProducts.length === 0 && (
+              {!loadingProducts && filteredProducts.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center gap-4">
                      <Search size={48} className="text-gray-200" />

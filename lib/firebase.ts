@@ -95,11 +95,10 @@ try {
 export const auth = firebaseAuth;
 
 // Initialize Firestore
-// Using experimentalForceLongPolling and local cache to improve reliability in environment constraints
+// Using local cache to improve reliability and speed up repeat visits
 let firestoreDb;
 try {
   firestoreDb = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true,
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
