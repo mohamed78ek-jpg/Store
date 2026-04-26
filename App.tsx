@@ -433,7 +433,10 @@ function App() {
       if (errorMsg.includes('popup-closed-by-user')) {
         showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
       } else if (errorMsg.includes('unauthorized-domain')) {
-        showNotification(t('النطاق غير مصرح به في Firebase', 'This domain is not authorized in Firebase Console'));
+        const domain = window.location.hostname;
+        showNotification(t(`النطاق (${domain}) غير مصرح به. يرجى إضافته في إعدادات Authentication في Firebase Console.`, `Domain (${domain}) is not authorized. Please add it to Authentication settings in Firebase Console.`));
+      } else if (errorMsg.includes('invalid-session-id')) {
+        showNotification(t('خطأ في الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'Session error. Please refresh the page and try again.'));
       } else {
         showNotification(t(`فشل تسجيل الدخول: ${errorMsg}`, `Login failed: ${errorMsg}`));
       }
