@@ -13,10 +13,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'mohamederrabani951@gmail.com' ||
-        request.auth.token.email == 'mohamedrbani9@gmail.com'
-      );
+      return isSignedIn() && 
+             (request.auth.token.email.lower() == 'mohamederrabani951@gmail.com'.lower() || 
+              request.auth.token.email.lower() == 'mohamedrbani9@gmail.com'.lower()) &&
+             request.auth.token.email_verified == true;
     }
 
     function incoming() {
@@ -37,28 +37,25 @@ service cloud.firestore {
       let requiredFields = ['id', 'name', 'price', 'image', 'category', 'description'];
       return data.keys().hasAll(requiredFields) &&
              data.id is string && isValidId(data.id) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 1000 &&
-             data.price is number && data.price >= 0 &&
-             data.image is string && data.image.size() <= 10485760 &&
-             data.category is string && data.category.size() <= 200 &&
-             data.description is string && data.description.size() <= 10000 &&
-             (!('discountPrice' in data) || (data.discountPrice is number && data.discountPrice >= 0)) &&
-             (!('sizes' in data) || (data.sizes is list && data.sizes.size() <= 50));
+             data.name is string && data.name.size() > 0 && data.name.size() <= 2000 &&
+             data.price is number &&
+             data.image is string && data.image.size() <= 20971520 &&
+             data.category is string &&
+             data.description is string;
     }
 
     function isValidOrder(data) {
       let requiredFields = ['id', 'customerName', 'phoneNumber', 'email', 'address', 'items', 'totalAmount', 'date', 'status'];
       return data.keys().hasAll(requiredFields) &&
              data.id is string && isValidId(data.id) &&
-             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 200 &&
-             data.phoneNumber is string && data.phoneNumber.size() > 0 && data.phoneNumber.size() <= 50 &&
-             data.email is string && data.email.size() <= 200 &&
-             data.address is string && data.address.size() > 0 && data.address.size() <= 500 &&
-             data.items is list && data.items.size() > 0 && data.items.size() <= 100 &&
-             data.totalAmount is number && data.totalAmount >= 0 &&
-             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] &&
-             data.date is string &&
-             (!('receiptFile' in data) || (data.receiptFile is string && data.receiptFile.size() <= 2097152));
+             data.customerName is string &&
+             data.phoneNumber is string &&
+             data.email is string &&
+             data.address is string &&
+             data.items is list &&
+             data.totalAmount is number &&
+             data.status is string &&
+             data.date is string;
     }
 
     function isValidReport(data) {

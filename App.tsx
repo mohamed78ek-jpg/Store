@@ -121,19 +121,19 @@ function App() {
 
       // Sort products: Newer products first
       const sorted = data.sort((a, b) => {
-        // Prefer explicit createdAt if available
+        // 1. Try numeric comparison if IDs are timestamps (from Date.now())
+        const valA = Number(a.id);
+        const valB = Number(b.id);
+        if (!isNaN(valA) && !isNaN(valB)) {
+          return valB - valA;
+        }
+
+        // 2. Try explicit createdAt
         if (a.createdAt && b.createdAt) {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
         
-        // Fallback to ID-based numeric comparison
-        const idA = Number(a.id);
-        const idB = Number(b.id);
-        if (!isNaN(idA) && !isNaN(idB)) {
-          return idB - idA;
-        }
-        
-        // Final fallback to string comparison
+        // 3. Fallback to string comparison
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
