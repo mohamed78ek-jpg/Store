@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard } from 'lucide-react';
+import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard, MessageCircle } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY } from '../constants';
 import { logout } from '../lib/firebase';
@@ -122,6 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         image: newProduct.image,
         description: newProduct.description || '',
         sizes: sizesArray,
+        isHidden: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -333,8 +334,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex gap-2 text-[10px] font-mono bg-white/50 px-2 py-1 rounded border border-emerald-100">
-             <span>OBJ: {products.length} P | {orders.length} O | {reports.length} R</span>
+          <div className="flex gap-2 text-[10px] sm:text-xs font-mono bg-white/50 px-3 py-1.5 rounded-full border border-emerald-100 items-center">
+             <span className="flex items-center gap-1"><Package size={12} /> {products.length} {t('منتج', 'Prod')} ({products.filter(p => p.isHidden).length} {t('مخفي', 'Hidden')})</span>
+             <span className="w-px h-3 bg-emerald-200"></span>
+             <span className="flex items-center gap-1"><ShoppingBag size={12} /> {orders.length} {t('طلب', 'Ord')}</span>
+             <span className="w-px h-3 bg-emerald-200"></span>
+             <span className="flex items-center gap-1"><MessageCircle size={12} /> {reports.length} {t('تقرير', 'Rep')}</span>
           </div>
         </div>
       )}
