@@ -14,8 +14,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && 
-             (request.auth.token.email.toLower() == 'mohamederrabani951@gmail.com'.toLower() || 
-              request.auth.token.email.toLower() == 'mohamedrbani9@gmail.com'.toLower()) &&
+             (request.auth.token.email.lower() == 'mohamederrabani951@gmail.com'.lower() || 
+              request.auth.token.email.lower() == 'mohamedrbani9@gmail.com'.lower()) &&
              request.auth.token.email_verified == true;
     }
 
@@ -41,7 +41,8 @@ service cloud.firestore {
              data.price is number &&
              data.image is string && data.image.size() <= 20971520 &&
              data.category is string &&
-             data.description is string;
+             data.description is string &&
+             (!('isHidden' in data) || data.isHidden is bool);
     }
 
     function isValidOrder(data) {

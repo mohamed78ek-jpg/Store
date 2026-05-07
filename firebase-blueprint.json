@@ -12,7 +12,8 @@
         "image": { "type": "string" },
         "category": { "type": "string" },
         "description": { "type": "string" },
-        "sizes": { "type": "array" }
+        "sizes": { "type": "array" },
+        "isHidden": { "type": "boolean" }
       },
       "required": ["id", "name", "price", "image", "category"]
     },

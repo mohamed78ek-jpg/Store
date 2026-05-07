@@ -41,22 +41,6 @@ function App() {
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [isOffline, setIsOffline] = useState(false);
 
-  // Firestore Error Handler as per instructions
-  const handleFirestoreError = (error: any, operation: string, path: string | null) => {
-    const errInfo = {
-      error: error instanceof Error ? error.message : String(error),
-      authInfo: {
-        userId: auth.currentUser?.uid,
-        email: auth.currentUser?.email,
-        emailVerified: auth.currentUser?.emailVerified,
-      },
-      operationType: operation,
-      path: path
-    };
-    console.error(`Firestore Error [${operation}]:`, JSON.stringify(errInfo, null, 2));
-    return errInfo;
-  };
-
   const [showAdPopup, setShowAdPopup] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isManualAdmin, setIsManualAdmin] = useState(() => {
@@ -125,23 +109,36 @@ function App() {
         // 1. Try numeric comparison if IDs are timestamps (from Date.now())
         const valA = Number(a.id);
         const valB = Number(b.id);
-        if (!isNaN(valA) && !isNaN(valB)) {
+        
+        // Use a higher threshold for timestamp detection (e.g., year 2020+) to avoid sorting by small sequential IDs
+        const isTimestampA = !isNaN(valA) && valA > 1577836800000;
+        const isTimestampB = !isNaN(valB) && valB > 1577836800000;
+
+        if (isTimestampA && isTimestampB) {
           return valB - valA;
         }
 
         // 2. Try explicit createdAt
         if (a.createdAt && b.createdAt) {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          if (!isNaN(timeA) && !isNaN(timeB)) {
+             return timeB - timeA;
+          }
         }
         
-        // 3. Fallback to string comparison
+        // 3. Fallback to ID string comparison
         return String(b.id || '').localeCompare(String(a.id || ''));
       });
       
       setProducts(sorted);
       setLoadingProducts(false);
     }, (error: any) => {
-      handleFirestoreError(error, 'list', 'products');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'products', auth);
+      } catch (e) {
+        // Error is logged inside handleFirestoreError
+      }
       setLoadingProducts(false);
       if (error.code === 'unavailable') setIsOffline(true);
     });
@@ -170,7 +167,11 @@ function App() {
         setIsOffline(false);
         setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
       }, (error: any) => {
-        handleFirestoreError(error, 'list', 'orders');
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'orders', auth);
+        } catch (e) {
+          // Error logged
+        }
         if (error.code === 'unavailable') setIsOffline(true);
       });
 
@@ -178,7 +179,11 @@ function App() {
         setIsOffline(false);
         setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
       }, (error: any) => {
-        handleFirestoreError(error, 'list', 'reports');
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'reports', auth);
+        } catch (e) {
+          // Error logged
+        }
         if (error.code === 'unavailable') setIsOffline(true);
       });
     } else {
@@ -320,8 +325,15 @@ function App() {
       showNotification(t(`تم إرسال طلبك بنجاح! رقم الطلب: ${orderId}`, `Order placed successfully! Order ID: ${orderId}`));
       setCurrentView(ViewState.HOME);
     } catch (error: any) {
-      handleFirestoreError(error, 'create', `orders/${orderId}`);
-      showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `orders/${orderId}`, auth);
+      } catch (e: any) {
+        if (e.message.includes('permission-denied')) {
+           showNotification(t('حدث خطأ في الصلاحيات عند الطلب.', 'Permission error during order.'));
+        } else {
+           showNotification(t('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.', 'Failed to place order. Please try again.'));
+        }
+      }
     }
   };
 
@@ -356,11 +368,14 @@ function App() {
       await setDoc(doc(db, 'products', productData.id), productData);
       showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
     } catch (error: any) {
-      const errInfo = handleFirestoreError(error, 'create', `products/${productData.id}`);
-      if (errInfo.error.includes('permission-denied')) {
-        showNotification(t('خطأ في الصلاحيات. تأكد من تسجيل دخولك بحساب Google المعتمد.', 'Permission denied. Make sure you are logged in with the authorized Google account.'));
-      } else {
-        showNotification(t('فشل في إضافة المنتج. تأكد من جودة الاتصال وحجم البيانات.', 'Failed to add product. Check connection and data size.'));
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `products/${productData.id}`, auth);
+      } catch (e: any) {
+        if (e.message.includes('permission-denied')) {
+          showNotification(t('خطأ في الصلاحيات. تأكد من تسجيل دخولك بحساب Google المعتمد.', 'Permission denied. Make sure you are logged in with the authorized Google account.'));
+        } else {
+          showNotification(t('فشل في إضافة المنتج. تأكد من جودة الاتصال وحجم البيانات.', 'Failed to add product. Check connection and data size.'));
+        }
       }
     }
   };
@@ -597,6 +612,13 @@ function App() {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       className={`min-h-screen bg-gray-50 pb-0 font-${language === 'ar' ? 'tajawal' : 'sans'} flex flex-col`}
     >
+      {/* Connection Status Banner */}
+      {isOffline && (
+        <div className="bg-amber-500 text-white py-2 px-4 text-center text-sm font-medium animate-pulse sticky top-0 z-[100] shadow-md">
+          {t('أنت تعمل في وضع عدم الاتصال. قد لا تظهر بعض البيانات فوراً.', 'You are operating in offline mode. Some data may not appear immediately.')}
+        </div>
+      )}
+
       {/* Top Banner */}
       {bannerText && (
         <div className="bg-gray-900 text-white h-[44px] flex items-center justify-center overflow-hidden relative z-40 w-full">
