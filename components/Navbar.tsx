@@ -2,6 +2,7 @@
 import React from 'react';
 import { ShoppingBag, Menu, Search } from 'lucide-react';
 import { ViewState, Language } from '../types';
+import { BRAND_NAME_AR, BRAND_NAME_EN } from '../constants';
 
 interface NavbarProps {
   cartCount: number;
@@ -33,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {language === 'ar' ? 'أ' : 'A'}
             </div>
             <span className="font-bold text-xl text-gray-900 hidden sm:block">
-              {language === 'ar' ? 'الأناقة' : 'Al-Anaka'}
+              {language === 'ar' ? BRAND_NAME_AR : BRAND_NAME_EN}
             </span>
           </div>
 

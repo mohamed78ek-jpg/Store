@@ -9,6 +9,7 @@ import { TrackOrder } from './components/TrackOrder';
 import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
+import { BRAND_NAME_AR, ADMIN_EMAILS } from './constants';
 import { auth, db, handleFirestoreError, OperationType, loginWithGoogle } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
@@ -37,7 +38,7 @@ function App() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
-  const [bannerText, setBannerText] = useState('أهلاً بك في متجر الأناقة - شحن مجاني للطلبات فوق 500 د.م');
+  const [bannerText, setBannerText] = useState(`أهلاً بك في ${BRAND_NAME_AR} - شحن مجاني للطلبات فوق 500 د.م`);
   const [popupConfig, setPopupConfig] = useState<PopupConfig>({ isActive: false, image: '' });
   const [isOffline, setIsOffline] = useState(false);
 
@@ -56,7 +57,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  const adminEmails = ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'];
+  const adminEmails = ADMIN_EMAILS;
 
   // isAdminUser now depends on manual login state OR genuine firebase admin state
   const isAdminUser = useMemo(() => {
@@ -719,7 +720,7 @@ function App() {
           
           <div className="border-t border-gray-100 pt-8 text-center">
             <p className="text-gray-400 text-sm">
-              © 2024 {t('متجر الأناقة. جميع الحقوق محفوظة.', 'Al-Anaka Store. All rights reserved.')}
+              © 2024 {t(`${BRAND_NAME_AR}. جميع الحقوق محفوظة.`, `${BRAND_NAME_AR}. All rights reserved.`)}
             </p>
           </div>
         </div>

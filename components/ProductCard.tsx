@@ -9,7 +9,6 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, language }) => {
-  // ... existing code ...
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes && product.sizes.length > 0 ? product.sizes[0] : undefined
   );

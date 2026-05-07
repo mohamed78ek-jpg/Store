@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard, MessageCircle } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
-import { APP_CURRENCY } from '../constants';
+import { APP_CURRENCY, BRAND_NAME_AR, ADMIN_EMAILS } from '../constants';
 import { logout } from '../lib/firebase';
 
 interface AdminDashboardProps {
@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onLogin(false);
   };
 
-  const isFirebaseVerifiedAdmin = firebaseUser && ['mohamederrabani951@gmail.com', 'mohamedrbani9@gmail.com'].includes((firebaseUser.email || '').toLowerCase());
+  const isFirebaseVerifiedAdmin = firebaseUser && ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase());
 
   // Check if we have active subscriptions for sensitive data
   const hasDataSync = isFirebaseVerifiedAdmin && orders.length >= 0;
@@ -1017,7 +1017,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 
                 {/* Header */}
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-[#b91c1c] font-tajawal">متجر الأناقة (Smart Style)</h1>
+                    <h1 className="text-2xl font-bold text-[#b91c1c] font-tajawal">{BRAND_NAME_AR} (Smart Style)</h1>
                     <p className="text-gray-500 text-sm mt-1">فاتورة بيع</p>
                 </div>
 
