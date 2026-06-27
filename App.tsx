@@ -473,9 +473,14 @@ function App() {
       const errorMsg = error.message || String(error);
       const errorCode = error.code;
       
-      if (errorCode === 'auth/popup-closed-by-user' || errorMsg.includes('popup-closed-by-user')) {
+      if (
+        errorCode === 'auth/popup-closed-by-user' || 
+        errorCode === 'auth/cancelled-popup-request' || 
+        errorMsg.includes('popup-closed-by-user') || 
+        errorMsg.includes('cancelled-popup-request')
+      ) {
         showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
-        console.log("Login popup closed by user.");
+        console.log("Login popup closed or cancelled by user.");
         return;
       }
 
