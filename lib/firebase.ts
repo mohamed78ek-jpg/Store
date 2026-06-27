@@ -122,11 +122,15 @@ export const loginWithGoogle = async () => {
     console.log("Google Sign-In Successful for user:", result.user.email);
     return result.user;
   } catch (error: any) {
-    console.error("Firebase Login Error Details:", {
-      code: error.code,
-      message: error.message,
-      stack: error.stack
-    });
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      console.log("User closed the login popup or cancelled the request.");
+    } else {
+      console.error("Firebase Login Error Details:", {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     throw error;
   }
 };

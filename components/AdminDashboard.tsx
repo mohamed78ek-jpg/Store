@@ -87,7 +87,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onLogin(false);
   };
 
-  const isFirebaseVerifiedAdmin = firebaseUser && ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase());
+  const isFirebaseVerifiedAdmin = firebaseUser && 
+    ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase()) &&
+    firebaseUser.emailVerified;
 
   // Check if we have active subscriptions for sensitive data
   const hasDataSync = isFirebaseVerifiedAdmin && orders.length >= 0;

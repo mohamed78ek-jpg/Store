@@ -62,7 +62,7 @@ function App() {
   // isAdminUser now depends on manual login state OR genuine firebase admin state
   const isAdminUser = useMemo(() => {
     const userEmail = (firebaseUser?.email || '').toLowerCase();
-    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail);
+    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail) && firebaseUser.emailVerified;
     return isManualAdmin || isFirebaseAdmin;
   }, [isManualAdmin, firebaseUser]);
 
@@ -85,7 +85,7 @@ function App() {
         const docData = d.data();
         if (!docData) return null;
         // Ensure all required fields exist and are of correct type
-        return { 
+        const p = { 
           ...docData,
           id: String(d.id), 
           name: String(docData.name || ''),
@@ -95,13 +95,15 @@ function App() {
           price: Number(docData.price || 0),
           discountPrice: docData.discountPrice ? Number(docData.discountPrice) : undefined,
           sizes: Array.isArray(docData.sizes) ? docData.sizes : [],
-          isHidden: !!docData.isHidden,
+          isHidden: docData.isHidden === true, // Explicit boolean check
           createdAt: docData.createdAt ? String(docData.createdAt) : undefined,
           updatedAt: docData.updatedAt ? String(docData.updatedAt) : undefined
         } as Product;
+        return p;
       }).filter((p): p is Product => p !== null);
       
-      console.log(`Received ${data.length} products from Firestore`);
+      const hiddenCount = data.filter(p => p.isHidden).length;
+      console.log(`Firestore Update: Received ${data.length} products total (${hiddenCount} hidden, ${data.length - hiddenCount} visible)`);
       
       // Removed automatic cleanup of mock products as it causes race conditions and permission errors for public users
 
@@ -365,9 +367,13 @@ function App() {
 
   // Admin Functions
   const handleAddProduct = async (productData: Product) => {
+    if (!isAdminUser) {
+      showNotification(t('يجب تسجيل الدخول كمسؤول أولاً', 'Must login as admin first'));
+      return;
+    }
     try {
       await setDoc(doc(db, 'products', productData.id), productData);
-      showNotification(t('تم إضافة المنتج بنجاح', 'Product added successfully'));
+      showNotification(t('تم إضافة المنتج بنجاح وهو يظهر الآن للزبائن', 'Product added successfully and is now visible to customers'));
     } catch (error: any) {
       try {
         handleFirestoreError(error, OperationType.CREATE, `products/${productData.id}`, auth);
@@ -464,11 +470,18 @@ function App() {
       await loginWithGoogle();
       showNotification(t('تم تسجيل الدخول بنجاح', 'Logged in successfully'));
     } catch (error: any) {
-      console.error("Detailed Login Error:", error);
       const errorMsg = error.message || String(error);
-      if (errorMsg.includes('popup-closed-by-user')) {
+      const errorCode = error.code;
+      
+      if (errorCode === 'auth/popup-closed-by-user' || errorMsg.includes('popup-closed-by-user')) {
         showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
-      } else if (errorMsg.includes('unauthorized-domain')) {
+        console.log("Login popup closed by user.");
+        return;
+      }
+
+      console.error("Detailed Login Error:", error);
+      
+      if (errorMsg.includes('unauthorized-domain')) {
         const domain = window.location.hostname;
         showNotification(t(`النطاق (${domain}) غير مصرح به. يرجى إضافته في إعدادات Authentication في Firebase Console.`, `Domain (${domain}) is not authorized. Please add it to Authentication settings in Firebase Console.`));
       } else if (errorMsg.includes('invalid-session-id')) {
