@@ -62,7 +62,7 @@ function App() {
   // isAdminUser now depends on manual login state OR genuine firebase admin state
   const isAdminUser = useMemo(() => {
     const userEmail = (firebaseUser?.email || '').toLowerCase();
-    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail) && firebaseUser.emailVerified;
+    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail);
     return isManualAdmin || isFirebaseAdmin;
   }, [isManualAdmin, firebaseUser]);
 
