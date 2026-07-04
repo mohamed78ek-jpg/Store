@@ -8,7 +8,9 @@ import {
   signInAnonymously,
   initializeAuth,
   browserLocalPersistence,
-  browserPopupRedirectResolver
+  browserPopupRedirectResolver,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -131,6 +133,26 @@ export const loginWithGoogle = async () => {
         stack: error.stack
       });
     }
+    throw error;
+  }
+};
+
+export const loginWithEmail = async (email: string, pass: string) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    return result.user;
+  } catch (error) {
+    console.error("Firebase Email Login Error:", error);
+    throw error;
+  }
+};
+
+export const registerWithEmail = async (email: string, pass: string) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+    return result.user;
+  } catch (error) {
+    console.error("Firebase Email Register Error:", error);
     throw error;
   }
 };

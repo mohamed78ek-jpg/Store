@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard, MessageCircle } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY, BRAND_NAME_AR, ADMIN_EMAILS } from '../constants';
-import { logout } from '../lib/firebase';
+import { logout, loginWithEmail, registerWithEmail } from '../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -47,12 +47,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   firebaseUser,
   onGoogleLogin
 }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('mohamederrabani951@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   
-  const isFullyAuth = isAuthenticated;
+  const isFirebaseVerifiedAdmin = firebaseUser && 
+    ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase());
+
+  const isFullyAuth = isAuthenticated || isFirebaseVerifiedAdmin;
 
   // Updated tabs state
   const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
@@ -72,13 +76,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  const handleManualLogin = (e: React.FormEvent) => {
+  const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'Mohamed' && password === 'Mohamed2003') {
+    setError('');
+
+    if (!email || !password) {
+      setError(t('يرجى ملء جميع الحقول', 'Please fill in all fields'));
+      return;
+    }
+
+    // Legacy fallback check
+    if (email.trim() === 'Mohamed' && password === 'Mohamed2003') {
       onLogin(true);
       setError('');
-    } else {
-      setError(t('بيانات الدخول غير صحيحة', 'Invalid credentials'));
+      return;
+    }
+
+    if (!email.includes('@')) {
+      setError(t('يرجى إدخال بريد إلكتروني مسؤول صالح', 'Please enter a valid admin email'));
+      return;
+    }
+
+    if (!ADMIN_EMAILS.map(em => em.toLowerCase()).includes(email.trim().toLowerCase())) {
+      setError(t('هذا البريد الإلكتروني غير مصرح به كمسؤول', 'This email is not authorized as an admin'));
+      return;
+    }
+
+    try {
+      setIsLoadingAuth(true);
+      // Attempt Firebase login
+      await loginWithEmail(email.trim().toLowerCase(), password);
+      onLogin(true);
+      setError('');
+    } catch (loginErr: any) {
+      // If user does not exist or password incorrect but we want to auto-create on first sign-up
+      if (loginErr.code === 'auth/user-not-found' || loginErr.message?.includes('user-not-found')) {
+        try {
+          // Attempt auto-register
+          await registerWithEmail(email.trim().toLowerCase(), password);
+          onLogin(true);
+          setError('');
+        } catch (regErr: any) {
+          setError(t('فشل إنشاء حساب المسؤول: ', 'Failed to create admin account: ') + (regErr.message || regErr));
+        }
+      } else if (loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
+        // Since Firebase V10 sometimes returns invalid-credential for both wrong password and user-not-found,
+        // let's try creating a user if they didn't have one, or report incorrect password.
+        try {
+          await registerWithEmail(email.trim().toLowerCase(), password);
+          onLogin(true);
+          setError('');
+        } catch (regErr: any) {
+          if (regErr.code === 'auth/email-already-in-use') {
+            setError(t('كلمة المرور غير صحيحة لهذا الحساب', 'Incorrect password for this account'));
+          } else {
+            setError(t('بيانات الدخول غير صحيحة أو خطأ في التسجيل', 'Invalid credentials or registration error'));
+          }
+        }
+      } else {
+        setError(loginErr.message || String(loginErr));
+      }
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
@@ -86,9 +145,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     await logout();
     onLogin(false);
   };
-
-  const isFirebaseVerifiedAdmin = firebaseUser && 
-    ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase());
 
   // Check if we have active subscriptions for sensitive data
   const hasDataSync = isFirebaseVerifiedAdmin && orders.length >= 0;
@@ -187,13 +243,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <form onSubmit={handleManualLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('البريد الإلكتروني للمسؤول', 'Admin Email')}</label>
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   dir="ltr"
+                  placeholder="example@gmail.com"
                 />
               </div>
               
@@ -215,12 +272,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm"
+                disabled={isLoadingAuth}
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {isLoadingAuth ? (
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : null}
                 {t('دخول المسؤول', 'Admin Login')}
               </button>
 
