@@ -109,15 +109,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onLogin(true);
       setError('');
     } catch (loginErr: any) {
-      // If user does not exist or password incorrect but we want to auto-create on first sign-up
-      if (loginErr.code === 'auth/user-not-found' || loginErr.message?.includes('user-not-found')) {
+      if (loginErr.code === 'auth/operation-not-allowed' || loginErr.message?.includes('operation-not-allowed')) {
+        setError(t(
+          'طريقة الدخول بالبريد غير مفعّلة في Firebase. يرجى تفعيل Email/Password في Firebase Console (Authentication > Sign-in method).',
+          'Email/Password sign-in is disabled in your Firebase console. Please enable it in Authentication > Sign-in method.'
+        ));
+      } else if (loginErr.code === 'auth/user-not-found' || loginErr.message?.includes('user-not-found')) {
         try {
           // Attempt auto-register
           await registerWithEmail(email.trim().toLowerCase(), password);
           onLogin(true);
           setError('');
         } catch (regErr: any) {
-          setError(t('فشل إنشاء حساب المسؤول: ', 'Failed to create admin account: ') + (regErr.message || regErr));
+          if (regErr.code === 'auth/operation-not-allowed' || regErr.message?.includes('operation-not-allowed')) {
+            setError(t(
+              'طريقة الدخول بالبريد غير مفعّلة في Firebase. يرجى تفعيل Email/Password في Firebase Console (Authentication > Sign-in method).',
+              'Email/Password sign-in is disabled in your Firebase console. Please enable it in Authentication > Sign-in method.'
+            ));
+          } else {
+            setError(t('فشل إنشاء حساب المسؤول: ', 'Failed to create admin account: ') + (regErr.message || regErr));
+          }
         }
       } else if (loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
         // Since Firebase V10 sometimes returns invalid-credential for both wrong password and user-not-found,
@@ -129,6 +140,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         } catch (regErr: any) {
           if (regErr.code === 'auth/email-already-in-use') {
             setError(t('كلمة المرور غير صحيحة لهذا الحساب', 'Incorrect password for this account'));
+          } else if (regErr.code === 'auth/operation-not-allowed' || regErr.message?.includes('operation-not-allowed')) {
+            setError(t(
+              'طريقة الدخول بالبريد غير مفعّلة في Firebase. يرجى تفعيل Email/Password في Firebase Console (Authentication > Sign-in method).',
+              'Email/Password sign-in is disabled in your Firebase console. Please enable it in Authentication > Sign-in method.'
+            ));
           } else {
             setError(t('بيانات الدخول غير صحيحة أو خطأ في التسجيل', 'Invalid credentials or registration error'));
           }
@@ -303,6 +319,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {t('تسجيل الدخول عبر جوجل', 'Login with Google')}
               </button>
 
+              {/* Iframe Warning for Google Sign-In */}
+              {typeof window !== 'undefined' && window.self !== window.top && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
+                  <p className="text-blue-800 text-[11px] font-medium leading-relaxed">
+                    💡 {t('تنبيه المعاينة: المتصفح قد يحجب نوافذ جوجل داخل المعاينة. يفضل تسجيل الدخول بالبريد الإلكتروني والرمز السري مباشرة بالأعلى، أو اضغط على أيقونة "فتح في نافذة جديدة" بأعلى يمين المعاينة لتسجيل الدخول بجوجل.', 'Preview Tip: Google popups may be blocked inside the preview pane. Please log in with Email & Password directly above, or use the "Open in new tab" icon at the top right to log in with Google.')}
+                  </p>
+                </div>
+              )}
+
               <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                 <details className="group cursor-pointer">
                   <summary className="text-xs text-gray-400 hover:text-emerald-600 transition-colors list-none flex items-center justify-center gap-1 font-medium">
@@ -370,15 +395,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {!isFirebaseVerifiedAdmin && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 shadow-sm">
-          <TriangleAlert className="flex-shrink-0 text-amber-600" size={24} />
-          <div>
-            <p className="font-bold text-base">
-              {t('مطلوب تسجيل الدخول بجوجل', 'Google Login Required')}
-            </p>
-            <p className="text-sm">
-              {t('عرض الطلبات وإضافة المنتجات يتطلب تسجيل الدخول بحساب Google المعتمد لمزامنة البيانات مع السيرفر.', 'Viewing orders and adding products requires signing in with an authorized Google account to sync data with the server.')}
-            </p>
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col gap-4 text-amber-800 shadow-sm">
+          <div className="flex items-start gap-3">
+            <TriangleAlert className="flex-shrink-0 text-amber-600 mt-1" size={24} />
+            <div>
+              <p className="font-bold text-base">
+                {t('مطلوب ربط الحساب بمشروع Firebase المعتمد', 'Authorized Firebase Account Required')}
+              </p>
+              <p className="text-sm">
+                {t('لعرض الطلبات والتقارير وإدارة المنتجات، يجب ربط هذه الجلسة بحساب مسؤول مسجّل في قواعد البيانات (سواءً عبر البريد الإلكتروني والرمز السري أو عبر جوجل).', 'To view orders, reports and manage products, this session must be linked to an authorized admin account in Firebase (either via Email/Password or via Google login).')}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-white/75 rounded-lg border border-amber-200">
+            <h4 className="font-bold text-sm text-gray-900 mb-2">{t('ربط البريد الإلكتروني للمسؤول مباشرة', 'Link Admin Email Directly')}</h4>
+            <p className="text-xs text-gray-500 mb-4">{t('ملاحظة: إذا كنت تستخدم نافذة المعاينة المدمجة، فقد يقوم المتصفح بحجب نافذة جوجل المنبثقة. يمكنك تسجيل الدخول أو إنشاء حساب مسؤول هنا مباشرة دون الحاجة لجوجل.', 'Note: If you are using the built-in preview, the browser may block Google login popups. You can log in or create an admin account directly here without Google.')}</p>
+            <form onSubmit={handleManualLogin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="relative">
+                <input
+                  type="email"
+                  placeholder={t('البريد الإلكتروني للمسؤول', 'Admin Email')}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-white text-gray-900 text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none w-full"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t('كلمة المرور', 'Password')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-white text-gray-900 text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none w-full"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute top-[10px] text-gray-400 hover:text-gray-600 ${language === 'ar' ? 'left-3' : 'right-3'}`}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <button
+                type="submit"
+                disabled={isLoadingAuth}
+                className="bg-gray-900 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoadingAuth && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                {t('ربط ومزامنة البيانات', 'Link & Sync Data')}
+              </button>
+            </form>
+            {error && <p className="text-red-500 text-xs font-bold mt-2 text-center">{error}</p>}
           </div>
         </div>
       )}
