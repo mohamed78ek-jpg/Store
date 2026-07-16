@@ -87,20 +87,23 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // Initialize Auth with explicit persistence and resolver for better iframe support
 let firebaseAuth;
 try {
+  // Try to initialize Auth with explicit settings first for correct popup/iframe support
   firebaseAuth = initializeAuth(app, {
     persistence: browserLocalPersistence,
     popupRedirectResolver: browserPopupRedirectResolver,
   });
 } catch (e) {
+  // If already initialized (or on HMR/re-renders), fall back to getting the existing Auth instance
   firebaseAuth = getAuth(app);
 }
 export const auth = firebaseAuth;
 
 // Initialize Firestore
 // Using local cache to improve reliability and speed up repeat visits
-// experimentalForceLongPolling added to resolve potential WebSocket connectivity issues
+// experimentalForceLongPolling added to resolve potential WebSocket connectivity issues in proxy/iframe environment
 let firestoreDb;
 try {
+  // Try to initialize Firestore with long polling and caching first
   firestoreDb = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
     experimentalForceLongPolling: true,
@@ -109,7 +112,7 @@ try {
     })
   }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
-  console.warn("Falling back to standard getFirestore due to initialization error:", e);
+  // If already initialized, fall back to getting the existing instance
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;

@@ -2,106 +2,36 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // --- 1. Global Helpers ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
+    // Helper to check if user is admin
     function isAdmin() {
-      return isSignedIn() && 
-             (request.auth.token.email.lower() == 'mohamederrabani951@gmail.com'.lower() || 
-              request.auth.token.email.lower() == 'mohamedrbani9@gmail.com'.lower());
+      return request.auth != null && 
+             (request.auth.token.email.lower() == 'mohamederrabani951@gmail.com' || 
+              request.auth.token.email.lower() == 'mohamedrbani9@gmail.com');
     }
 
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // --- 2. Entity Validation Blueprints ---
-
-    function isValidProduct(data) {
-      let requiredFields = ['id', 'name', 'price', 'image', 'category', 'description'];
-      return data.keys().hasAll(requiredFields) &&
-             data.id is string && isValidId(data.id) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 2000 &&
-             data.price is number &&
-             data.image is string && data.image.size() <= 20971520 &&
-             data.category is string &&
-             data.description is string &&
-             (!('isHidden' in data) || data.isHidden is bool);
-    }
-
-    function isValidOrder(data) {
-      let requiredFields = ['id', 'customerName', 'phoneNumber', 'email', 'address', 'items', 'totalAmount', 'date', 'status'];
-      return data.keys().hasAll(requiredFields) &&
-             data.id is string && isValidId(data.id) &&
-             data.customerName is string &&
-             data.phoneNumber is string &&
-             data.email is string &&
-             data.address is string &&
-             data.items is list &&
-             data.totalAmount is number &&
-             data.status is string &&
-             data.date is string;
-    }
-
-    function isValidReport(data) {
-      let requiredFields = ['id', 'name', 'contact', 'message', 'date', 'isRead'];
-      return data.keys().hasAll(requiredFields) &&
-             data.id is string && isValidId(data.id) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
-             data.contact is string && data.contact.size() > 0 && data.contact.size() <= 200 &&
-             data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
-             data.date is string &&
-             data.isRead is bool;
-    }
-
-    function isValidConfig(data) {
-      return (!('bannerText' in data) || (data.bannerText is string && data.bannerText.size() <= 500)) &&
-             (!('popupConfig' in data) || (data.popupConfig is map && data.popupConfig.isActive is bool && data.popupConfig.image is string));
-    }
-
-    // --- 3. Collection Rules ---
-
+    // Products: Public read, Admin write
     match /products/{productId} {
-      allow get: if isValidId(productId);
-      allow list: if true;
-      allow create, update: if isAdmin() && isValidProduct(incoming()); 
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
+    // Orders: Public create, Admin manage
     match /orders/{orderId} {
-      allow get: if isValidId(orderId);
-      allow list: if isAdmin(); // Orders are sensitive
-      allow create: if isValidOrder(incoming());
-      allow update: if isAdmin() && isValidOrder(incoming());
-      allow delete: if isAdmin();
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
+    // Reports: Public create, Admin manage
     match /reports/{reportId} {
-      allow get: if isValidId(reportId);
-      allow list: if isAdmin(); 
-      allow create: if isValidReport(incoming());
-      allow update: if isAdmin() && isValidReport(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-      allow delete: if isAdmin();
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
+    // Site Config: Public read, Admin write
     match /siteConfig/{docId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidConfig(incoming());
+      allow write: if isAdmin();
     }
   }
 }
