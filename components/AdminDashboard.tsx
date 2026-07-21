@@ -367,6 +367,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
 
 
+
+
       {isFirebaseVerifiedAdmin && (
         <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-800 shadow-sm">
           <div className="flex items-center gap-3">
