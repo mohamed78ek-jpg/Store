@@ -80,47 +80,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     setError('');
 
-    const cleanEmail = email.trim().toLowerCase();
+    if (!email || !password) {
+      setError(t('يرجى ملء جميع الحقول', 'Please fill in all fields'));
+      return;
+    }
+
+    const cleanInput = email.trim();
+    const cleanEmail = cleanInput.toLowerCase();
+
+    // Legacy fallback credentials
+    if (cleanInput === 'Mohamed' && password === 'Mohamed2003') {
+      try {
+        await loginAnonymously();
+      } catch (e) {}
+      onLogin(true);
+      setError('');
+      return;
+    }
+
+    const isAuthorizedEmail = ADMIN_EMAILS.map(em => em.toLowerCase()).includes(cleanEmail);
 
     try {
       setIsLoadingAuth(true);
 
-      if (cleanEmail && cleanEmail.includes('@') && password) {
+      if (cleanEmail.includes('@') && isAuthorizedEmail) {
         try {
           await loginWithEmail(cleanEmail, password);
         } catch (loginErr: any) {
-          console.log("Firebase login attempt error, registering or using fallback:", loginErr);
+          console.log("Firebase login error, trying auto-registration or anonymous fallback:", loginErr);
           try {
             await registerWithEmail(cleanEmail, password);
           } catch (regErr) {}
         }
       }
 
-      // Ensure anonymous sign-in if no active Firebase session
+      // Ensure active Firebase auth session for database operations
       try {
         await loginAnonymously();
-      } catch (anonErr) {
-        console.warn("Anonymous auth fallback warning:", anonErr);
-      }
+      } catch (anonErr) {}
 
       onLogin(true);
       setError('');
     } catch (err: any) {
-      onLogin(true);
-      setError('');
-    } finally {
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const handleDirectAdminLogin = async () => {
-    try {
-      setIsLoadingAuth(true);
-      try {
-        await loginAnonymously();
-      } catch (e) {}
-      onLogin(true);
-      setError('');
+      setError(t('بيانات الدخول غير صحيحة', 'Invalid login credentials'));
     } finally {
       setIsLoadingAuth(false);
     }
@@ -267,17 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {isLoadingAuth ? (
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 ) : null}
-                {t('دخول المسؤول (بالبريد)', 'Admin Login (Email)')}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDirectAdminLogin}
-                disabled={isLoadingAuth}
-                className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <ShieldCheck size={20} />
-                {t('دخول مباشر وسريع للمسؤول', 'Direct Admin Access')}
+                {t('دخول المسؤول', 'Admin Login')}
               </button>
 
               <div className="relative my-6">
@@ -373,64 +365,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {!isFirebaseVerifiedAdmin && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col gap-4 text-amber-800 shadow-sm">
-          <div className="flex items-start gap-3">
-            <TriangleAlert className="flex-shrink-0 text-amber-600 mt-1" size={24} />
-            <div>
-              <p className="font-bold text-base">
-                {t('مطلوب ربط الحساب بمشروع Firebase المعتمد', 'Authorized Firebase Account Required')}
-              </p>
-              <p className="text-sm">
-                {t('لعرض الطلبات والتقارير وإدارة المنتجات، يجب ربط هذه الجلسة بحساب مسؤول مسجّل في قواعد البيانات (سواءً عبر البريد الإلكتروني والرمز السري أو عبر جوجل).', 'To view orders, reports and manage products, this session must be linked to an authorized admin account in Firebase (either via Email/Password or via Google login).')}
-              </p>
-            </div>
-          </div>
 
-          <div className="p-4 bg-white/75 rounded-lg border border-amber-200">
-            <h4 className="font-bold text-sm text-gray-900 mb-2">{t('ربط البريد الإلكتروني للمسؤول مباشرة', 'Link Admin Email Directly')}</h4>
-            <p className="text-xs text-gray-500 mb-4">{t('ملاحظة: إذا كنت تستخدم نافذة المعاينة المدمجة، فقد يقوم المتصفح بحجب نافذة جوجل المنبثقة. يمكنك تسجيل الدخول أو إنشاء حساب مسؤول هنا مباشرة دون الحاجة لجوجل.', 'Note: If you are using the built-in preview, the browser may block Google login popups. You can log in or create an admin account directly here without Google.')}</p>
-            <form onSubmit={handleManualLogin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder={t('البريد الإلكتروني للمسؤول', 'Admin Email')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white text-gray-900 text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none w-full"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder={t('كلمة المرور', 'Password')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-white text-gray-900 text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none w-full"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute top-[10px] text-gray-400 hover:text-gray-600 ${language === 'ar' ? 'left-3' : 'right-3'}`}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <button
-                type="submit"
-                disabled={isLoadingAuth}
-                className="bg-gray-900 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoadingAuth && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
-                {t('ربط ومزامنة البيانات', 'Link & Sync Data')}
-              </button>
-            </form>
-            {error && <p className="text-red-500 text-xs font-bold mt-2 text-center">{error}</p>}
-          </div>
-        </div>
-      )}
 
       {isFirebaseVerifiedAdmin && (
         <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-800 shadow-sm">
