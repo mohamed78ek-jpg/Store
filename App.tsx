@@ -467,7 +467,11 @@ function App() {
   const handleGoogleLogin = async () => {
     try {
       console.log("Starting Google Login...");
-      await loginWithGoogle();
+      const user = await loginWithGoogle();
+      const userEmail = (user?.email || '').toLowerCase();
+      if (adminEmails.map(e => e.toLowerCase()).includes(userEmail)) {
+        setIsManualAdmin(true);
+      }
       showNotification(t('تم تسجيل الدخول بنجاح', 'Logged in successfully'));
     } catch (error: any) {
       const errorMsg = error.message || String(error);
@@ -479,7 +483,7 @@ function App() {
         errorMsg.includes('popup-closed-by-user') || 
         errorMsg.includes('cancelled-popup-request')
       ) {
-        showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
+        showNotification(t('تم إغلاق نافذة الدخول. يمكن تسجيل الدخول مباشرة بالبريد الإلكتروني والرمز بالنموذج أعلاه.', 'Popup closed. You can log in directly with Email & Password in the form above.'));
         console.log("Login popup closed or cancelled by user.");
         return;
       }
@@ -488,11 +492,11 @@ function App() {
       
       if (errorMsg.includes('unauthorized-domain')) {
         const domain = window.location.hostname;
-        showNotification(t(`النطاق (${domain}) غير مصرح به. يرجى إضافته في إعدادات Authentication في Firebase Console.`, `Domain (${domain}) is not authorized. Please add it to Authentication settings in Firebase Console.`));
+        showNotification(t(`النطاق (${domain}) غير مصرح به لجوجل. يرجى تسجيل الدخول بالبريد والرمز بالنموذج أعلاه.`, `Domain (${domain}) not authorized for Google. Please log in with Email & Password in form above.`));
       } else if (errorMsg.includes('invalid-session-id')) {
         showNotification(t('خطأ في الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'Session error. Please refresh the page and try again.'));
       } else {
-        showNotification(t(`فشل تسجيل الدخول: ${errorMsg}`, `Login failed: ${errorMsg}`));
+        showNotification(t(`فشل تسجيل الدخول بجوجل: ${errorMsg}`, `Google login failed: ${errorMsg}`));
       }
     }
   };
