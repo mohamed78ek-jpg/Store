@@ -10,7 +10,7 @@ import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { BRAND_NAME_AR, ADMIN_EMAILS } from './constants';
-import { auth, db, handleFirestoreError, OperationType, loginWithGoogle } from './lib/firebase';
+import { auth, db, handleFirestoreError, OperationType, loginWithGoogle, loginAnonymously } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
@@ -48,10 +48,17 @@ function App() {
     return localStorage.getItem('is_admin') === 'true';
   });
 
-  // Track Firebase Auth state
+  // Track Firebase Auth state with auto-anonymous sign in fallback
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      if (!user) {
+        try {
+          await loginAnonymously();
+        } catch (e) {
+          console.warn("Auto anonymous login on start:", e);
+        }
+      }
       console.log("Firebase Auth State Changed:", user ? "Signed In" : "Signed Out");
     });
     return () => unsubscribe();
@@ -67,7 +74,7 @@ function App() {
   }, [isManualAdmin, firebaseUser]);
 
   // Genuine Firestore Access Guard (for sensitive collections)
-  const canAccessSensitiveData = !!firebaseUser && isAdminUser;
+  const canAccessSensitiveData = isManualAdmin || (!!firebaseUser && isAdminUser);
 
   // Firestore Data Listeners
   useEffect(() => {
