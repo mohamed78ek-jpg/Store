@@ -98,12 +98,14 @@ try {
 }
 export const auth = firebaseAuth;
 
-// Initialize Firestore cleanly using standard database ID
-let firestoreDb;
+// Initialize Firestore with experimentalForceLongPolling for iframe/sandbox compatibility
+let firestoreDb: Firestore;
 try {
-  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  firestoreDb = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
-  firestoreDb = getFirestore(app);
+  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;
 
