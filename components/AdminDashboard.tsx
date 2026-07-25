@@ -272,61 +272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {t('دخول المسؤول', 'Admin Login')}
               </button>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">{t('أو', 'OR')}</span>
-                </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={onGoogleLogin}
-                className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
-              >
-                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                {t('تسجيل الدخول عبر جوجل', 'Login with Google')}
-              </button>
-
-              {/* Iframe Warning for Google Sign-In */}
-              {typeof window !== 'undefined' && window.self !== window.top && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
-                  <p className="text-blue-800 text-[11px] font-medium leading-relaxed">
-                    💡 {t('تنبيه المعاينة: المتصفح قد يحجب نوافذ جوجل داخل المعاينة. يفضل تسجيل الدخول بالبريد الإلكتروني والرمز السري مباشرة بالأعلى، أو اضغط على أيقونة "فتح في نافذة جديدة" بأعلى يمين المعاينة لتسجيل الدخول بجوجل.', 'Preview Tip: Google popups may be blocked inside the preview pane. Please log in with Email & Password directly above, or use the "Open in new tab" icon at the top right to log in with Google.')}
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                <details className="group cursor-pointer">
-                  <summary className="text-xs text-gray-400 hover:text-emerald-600 transition-colors list-none flex items-center justify-center gap-1 font-medium">
-                    <TriangleAlert size={12} className="group-open:rotate-180 transition-transform" />
-                    {t('مشاكل في تسجيل الدخول؟', 'Login issues?')}
-                  </summary>
-                  <div className="mt-3 p-4 bg-gray-50 rounded-xl text-[10px] sm:text-xs text-gray-600 space-y-2 text-right rtl">
-                    <p className="font-bold text-red-600">
-                      {t('إذا ظهر خطأ "unauthorized-domain":', 'If you see "unauthorized-domain" error:')}
-                    </p>
-                    <p>
-                      {t('1. اذهب إلى Firebase Console > Authentication > Settings > Authorized domains', '1. Go to Firebase Console > Authentication > Settings > Authorized domains')}
-                    </p>
-                    <p>
-                      {t('2. أضف هذه النطاقات (النطاق الحالي وأي نطاق مشاركة):', '2. Add these domains (current and any shared domains):')}
-                    </p>
-                    <code className="block bg-white p-2 rounded border border-gray-200 select-all font-mono text-emerald-600 break-all">
-                      {window.location.hostname}
-                    </code>
-                    <p className="text-[9px] text-gray-500 italic">
-                      {t('* ملحوظة: إذا كنت تستخدم رابط المشاركة، ستحتاج لإضافته أيضاً.', '* Note: If you use the shared link, you will need to add it as well.')}
-                    </p>
-                    <p className="text-[10px] text-gray-400">
-                      {t('* تأكد من تفعيل Google Login في قسم Sign-in method', '* Ensure Google Login is enabled in Sign-in method section')}
-                    </p>
-                  </div>
-                </details>
-              </div>
             </form>
         </div>
       </div>

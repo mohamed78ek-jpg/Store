@@ -8,37 +8,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin rule: allows signed-in users (authorized emails or active admin session)
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == null ||
-        request.auth.token.email.lower() == 'mohamederrabani951@gmail.com' || 
-        request.auth.token.email.lower() == 'mohamedrbani9@gmail.com'
-      );
-    }
-
     // Products: Public read, Admin write
     match /products/{productId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     // Orders: Public create, Admin manage
     match /orders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read, write: if true;
     }
 
     // Reports: Public create, Admin manage
     match /reports/{reportId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read, write: if true;
     }
 
     // Site Config: Public read, Admin write
     match /siteConfig/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
   }
 }

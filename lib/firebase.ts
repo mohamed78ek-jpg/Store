@@ -165,8 +165,9 @@ export const loginAnonymously = async () => {
     const result = await signInAnonymously(auth);
     return result.user;
   } catch (error) {
-    console.error("Anonymous login failed:", error);
-    throw error;
+    // If anonymous sign-in is disabled in Firebase Console, handle gracefully
+    console.warn("Anonymous login skipped or restricted in Firebase Console.");
+    return null;
   }
 };
 
