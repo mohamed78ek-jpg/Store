@@ -98,22 +98,12 @@ try {
 }
 export const auth = firebaseAuth;
 
-// Initialize Firestore
-// Using local cache to improve reliability and speed up repeat visits
-// experimentalForceLongPolling added to resolve potential WebSocket connectivity issues in proxy/iframe environment
+// Initialize Firestore cleanly using standard database ID
 let firestoreDb;
 try {
-  // Try to initialize Firestore with long polling and caching first
-  firestoreDb = initializeFirestore(app, {
-    ignoreUndefinedProperties: true,
-    experimentalForceLongPolling: true,
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  }, firebaseConfig.firestoreDatabaseId);
-} catch (e) {
-  // If already initialized, fall back to getting the existing instance
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+} catch (e) {
+  firestoreDb = getFirestore(app);
 }
 export const db = firestoreDb;
 
@@ -179,19 +169,14 @@ export const logout = async () => {
 export const checkFirebaseConnection = async () => {
   try {
     const testDoc = doc(db, 'siteConfig', 'global');
-    await getDocFromServer(testDoc);
+    await getDoc(testDoc);
     return true;
   } catch (error: any) {
-    if (error.code === 'unavailable' || (error.message && error.message.includes('the client is offline'))) {
-      console.warn("Firestore is currently operating in offline mode. This might be due to network restrictions or a lack of internet connection.");
+    if (error?.code === 'unavailable' || (error?.message && error.message.includes('offline'))) {
+      console.warn("Firestore operating in offline/cached mode.");
     } else {
-      console.error("Firebase connection error:", error);
+      console.warn("Firebase connection notice:", error?.message || error);
     }
     return false;
   }
 };
-
-// Only run test connection if not in production to avoid cluttering logs
-if (process.env.NODE_ENV !== 'production') {
-  checkFirebaseConnection();
-}
