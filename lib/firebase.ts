@@ -8,9 +8,7 @@ import {
   signInAnonymously,
   initializeAuth,
   browserLocalPersistence,
-  browserPopupRedirectResolver,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  browserPopupRedirectResolver
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -87,24 +85,29 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // Initialize Auth with explicit persistence and resolver for better iframe support
 let firebaseAuth;
 try {
-  // Try to initialize Auth with explicit settings first for correct popup/iframe support
   firebaseAuth = initializeAuth(app, {
     persistence: browserLocalPersistence,
     popupRedirectResolver: browserPopupRedirectResolver,
   });
 } catch (e) {
-  // If already initialized (or on HMR/re-renders), fall back to getting the existing Auth instance
   firebaseAuth = getAuth(app);
 }
 export const auth = firebaseAuth;
 
-// Initialize Firestore with experimentalForceLongPolling for iframe/sandbox compatibility
-let firestoreDb: Firestore;
+// Initialize Firestore
+// Using local cache to improve reliability and speed up repeat visits
+// experimentalForceLongPolling added to resolve potential WebSocket connectivity issues
+let firestoreDb;
 try {
   firestoreDb = initializeFirestore(app, {
+    ignoreUndefinedProperties: true,
     experimentalForceLongPolling: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
   }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
+  console.warn("Falling back to standard getFirestore due to initialization error:", e);
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = firestoreDb;
@@ -132,34 +135,13 @@ export const loginWithGoogle = async () => {
   }
 };
 
-export const loginWithEmail = async (email: string, pass: string) => {
-  try {
-    const result = await signInWithEmailAndPassword(auth, email, pass);
-    return result.user;
-  } catch (error) {
-    console.error("Firebase Email Login Error:", error);
-    throw error;
-  }
-};
-
-export const registerWithEmail = async (email: string, pass: string) => {
-  try {
-    const result = await createUserWithEmailAndPassword(auth, email, pass);
-    return result.user;
-  } catch (error) {
-    console.error("Firebase Email Register Error:", error);
-    throw error;
-  }
-};
-
 export const loginAnonymously = async () => {
   try {
     const result = await signInAnonymously(auth);
     return result.user;
   } catch (error) {
-    // If anonymous sign-in is disabled in Firebase Console, handle gracefully
-    console.warn("Anonymous login skipped or restricted in Firebase Console.");
-    return null;
+    console.error("Anonymous login failed:", error);
+    throw error;
   }
 };
 
@@ -171,14 +153,19 @@ export const logout = async () => {
 export const checkFirebaseConnection = async () => {
   try {
     const testDoc = doc(db, 'siteConfig', 'global');
-    await getDoc(testDoc);
+    await getDocFromServer(testDoc);
     return true;
   } catch (error: any) {
-    if (error?.code === 'unavailable' || (error?.message && error.message.includes('offline'))) {
-      console.warn("Firestore operating in offline/cached mode.");
+    if (error.code === 'unavailable' || (error.message && error.message.includes('the client is offline'))) {
+      console.warn("Firestore is currently operating in offline mode. This might be due to network restrictions or a lack of internet connection.");
     } else {
-      console.warn("Firebase connection notice:", error?.message || error);
+      console.error("Firebase connection error:", error);
     }
     return false;
   }
 };
+
+// Only run test connection if not in production to avoid cluttering logs
+if (process.env.NODE_ENV !== 'production') {
+  checkFirebaseConnection();
+}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Plus, Trash2, LogOut, Package, ShieldCheck, TriangleAlert, ChevronDown, Megaphone, ShoppingBag, Phone, MapPin, Mail, User, FileText, X, Download, List, PlusCircle, Image as ImageIcon, Upload, MonitorPlay, Banknote, MessageSquareWarning, Calendar, CheckCircle, Link, Printer, CreditCard, MessageCircle } from 'lucide-react';
 import { Product, Language, Order, PopupConfig, OrderStatus, Report } from '../types';
 import { APP_CURRENCY, BRAND_NAME_AR, ADMIN_EMAILS } from '../constants';
-import { logout, loginWithEmail, registerWithEmail, loginAnonymously } from '../lib/firebase';
+import { logout } from '../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -47,16 +47,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   firebaseUser,
   onGoogleLogin
 }) => {
-  const [email, setEmail] = useState('mohamederrabani951@gmail.com');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   
-  const isFirebaseVerifiedAdmin = firebaseUser && 
-    ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase());
-
-  const isFullyAuth = isAuthenticated || isFirebaseVerifiedAdmin;
+  const isFullyAuth = isAuthenticated;
 
   // Updated tabs state
   const [activeTab, setActiveTab] = useState<'orders' | 'add_product' | 'product_list' | 'settings' | 'reports'>('orders');
@@ -76,55 +72,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
-  const handleManualLogin = async (e: React.FormEvent) => {
+  const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!email || !password) {
-      setError(t('يرجى ملء جميع الحقول', 'Please fill in all fields'));
-      return;
-    }
-
-    const cleanInput = email.trim();
-    const cleanEmail = cleanInput.toLowerCase();
-
-    // Legacy fallback credentials
-    if (cleanInput === 'Mohamed' && password === 'Mohamed2003') {
-      try {
-        await loginAnonymously();
-      } catch (e) {}
+    if (username === 'Mohamed' && password === 'Mohamed2003') {
       onLogin(true);
       setError('');
-      return;
-    }
-
-    const isAuthorizedEmail = ADMIN_EMAILS.map(em => em.toLowerCase()).includes(cleanEmail);
-
-    try {
-      setIsLoadingAuth(true);
-
-      if (cleanEmail.includes('@') && isAuthorizedEmail) {
-        try {
-          await loginWithEmail(cleanEmail, password);
-        } catch (loginErr: any) {
-          console.log("Firebase login error, trying auto-registration or anonymous fallback:", loginErr);
-          try {
-            await registerWithEmail(cleanEmail, password);
-          } catch (regErr) {}
-        }
-      }
-
-      // Ensure active Firebase auth session for database operations
-      try {
-        await loginAnonymously();
-      } catch (anonErr) {}
-
-      onLogin(true);
-      setError('');
-    } catch (err: any) {
-      setError(t('بيانات الدخول غير صحيحة', 'Invalid login credentials'));
-    } finally {
-      setIsLoadingAuth(false);
+    } else {
+      setError(t('بيانات الدخول غير صحيحة', 'Invalid credentials'));
     }
   };
 
@@ -132,6 +86,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     await logout();
     onLogin(false);
   };
+
+  const isFirebaseVerifiedAdmin = firebaseUser && 
+    ADMIN_EMAILS.map(e => e.toLowerCase()).includes((firebaseUser.email || '').toLowerCase()) &&
+    firebaseUser.emailVerified;
 
   // Check if we have active subscriptions for sensitive data
   const hasDataSync = isFirebaseVerifiedAdmin && orders.length >= 0;
@@ -230,14 +188,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <form onSubmit={handleManualLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('البريد الإلكتروني للمسؤول', 'Admin Email')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('اسم المستخدم', 'Username')}</label>
                 <input
                   type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="bg-white text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   dir="ltr"
-                  placeholder="example@gmail.com"
                 />
               </div>
               
@@ -259,20 +216,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
 
               <button
                 type="submit"
-                disabled={isLoadingAuth}
-                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm"
               >
-                {isLoadingAuth ? (
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                ) : null}
                 {t('دخول المسؤول', 'Admin Login')}
               </button>
 
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">{t('أو', 'OR')}</span>
+                </div>
+              </div>
 
+              <button
+                type="button"
+                onClick={onGoogleLogin}
+                className="w-full py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                {t('تسجيل الدخول عبر جوجل', 'Login with Google')}
+              </button>
+
+              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                <details className="group cursor-pointer">
+                  <summary className="text-xs text-gray-400 hover:text-emerald-600 transition-colors list-none flex items-center justify-center gap-1 font-medium">
+                    <TriangleAlert size={12} className="group-open:rotate-180 transition-transform" />
+                    {t('مشاكل في تسجيل الدخول؟', 'Login issues?')}
+                  </summary>
+                  <div className="mt-3 p-4 bg-gray-50 rounded-xl text-[10px] sm:text-xs text-gray-600 space-y-2 text-right rtl">
+                    <p className="font-bold text-red-600">
+                      {t('إذا ظهر خطأ "unauthorized-domain":', 'If you see "unauthorized-domain" error:')}
+                    </p>
+                    <p>
+                      {t('1. اذهب إلى Firebase Console > Authentication > Settings > Authorized domains', '1. Go to Firebase Console > Authentication > Settings > Authorized domains')}
+                    </p>
+                    <p>
+                      {t('2. أضف هذه النطاقات (النطاق الحالي وأي نطاق مشاركة):', '2. Add these domains (current and any shared domains):')}
+                    </p>
+                    <code className="block bg-white p-2 rounded border border-gray-200 select-all font-mono text-emerald-600 break-all">
+                      {window.location.hostname}
+                    </code>
+                    <p className="text-[9px] text-gray-500 italic">
+                      {t('* ملحوظة: إذا كنت تستخدم رابط المشاركة، ستحتاج لإضافته أيضاً.', '* Note: If you use the shared link, you will need to add it as well.')}
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      {t('* تأكد من تفعيل Google Login في قسم Sign-in method', '* Ensure Google Login is enabled in Sign-in method section')}
+                    </p>
+                  </div>
+                </details>
+              </div>
             </form>
         </div>
       </div>
@@ -311,9 +309,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-
-
-
+      {!isFirebaseVerifiedAdmin && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 shadow-sm">
+          <TriangleAlert className="flex-shrink-0 text-amber-600" size={24} />
+          <div>
+            <p className="font-bold text-base">
+              {t('مطلوب تسجيل الدخول بجوجل', 'Google Login Required')}
+            </p>
+            <p className="text-sm">
+              {t('عرض الطلبات وإضافة المنتجات يتطلب تسجيل الدخول بحساب Google المعتمد لمزامنة البيانات مع السيرفر.', 'Viewing orders and adding products requires signing in with an authorized Google account to sync data with the server.')}
+            </p>
+          </div>
+        </div>
+      )}
 
       {isFirebaseVerifiedAdmin && (
         <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-800 shadow-sm">

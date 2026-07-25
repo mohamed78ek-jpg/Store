@@ -10,7 +10,7 @@ import { ReportProblem } from './components/ReportProblem';
 import { Product, CartItem, ViewState, Language, Order, PopupConfig, OrderStatus, Report } from './types';
 import { Search, Mail, Banknote } from 'lucide-react';
 import { BRAND_NAME_AR, ADMIN_EMAILS } from './constants';
-import { auth, db, handleFirestoreError, OperationType, loginWithGoogle, loginAnonymously } from './lib/firebase';
+import { auth, db, handleFirestoreError, OperationType, loginWithGoogle } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
@@ -48,17 +48,10 @@ function App() {
     return localStorage.getItem('is_admin') === 'true';
   });
 
-  // Track Firebase Auth state with auto-anonymous sign in fallback
+  // Track Firebase Auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
-      if (!user) {
-        try {
-          await loginAnonymously();
-        } catch (e) {
-          console.warn("Auto anonymous login on start:", e);
-        }
-      }
       console.log("Firebase Auth State Changed:", user ? "Signed In" : "Signed Out");
     });
     return () => unsubscribe();
@@ -69,12 +62,12 @@ function App() {
   // isAdminUser now depends on manual login state OR genuine firebase admin state
   const isAdminUser = useMemo(() => {
     const userEmail = (firebaseUser?.email || '').toLowerCase();
-    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail);
+    const isFirebaseAdmin = !!firebaseUser && adminEmails.map(e => e.toLowerCase()).includes(userEmail) && firebaseUser.emailVerified;
     return isManualAdmin || isFirebaseAdmin;
   }, [isManualAdmin, firebaseUser]);
 
   // Genuine Firestore Access Guard (for sensitive collections)
-  const canAccessSensitiveData = isManualAdmin || (!!firebaseUser && isAdminUser);
+  const canAccessSensitiveData = !!firebaseUser && isAdminUser;
 
   // Firestore Data Listeners
   useEffect(() => {
@@ -474,24 +467,15 @@ function App() {
   const handleGoogleLogin = async () => {
     try {
       console.log("Starting Google Login...");
-      const user = await loginWithGoogle();
-      const userEmail = (user?.email || '').toLowerCase();
-      if (adminEmails.map(e => e.toLowerCase()).includes(userEmail)) {
-        setIsManualAdmin(true);
-      }
+      await loginWithGoogle();
       showNotification(t('تم تسجيل الدخول بنجاح', 'Logged in successfully'));
     } catch (error: any) {
       const errorMsg = error.message || String(error);
       const errorCode = error.code;
       
-      if (
-        errorCode === 'auth/popup-closed-by-user' || 
-        errorCode === 'auth/cancelled-popup-request' || 
-        errorMsg.includes('popup-closed-by-user') || 
-        errorMsg.includes('cancelled-popup-request')
-      ) {
-        showNotification(t('تم إغلاق نافذة الدخول. يمكن تسجيل الدخول مباشرة بالبريد الإلكتروني والرمز بالنموذج أعلاه.', 'Popup closed. You can log in directly with Email & Password in the form above.'));
-        console.log("Login popup closed or cancelled by user.");
+      if (errorCode === 'auth/popup-closed-by-user' || errorMsg.includes('popup-closed-by-user')) {
+        showNotification(t('تم إغلاق نافذة تسجيل الدخول', 'Login popup was closed'));
+        console.log("Login popup closed by user.");
         return;
       }
 
@@ -499,11 +483,11 @@ function App() {
       
       if (errorMsg.includes('unauthorized-domain')) {
         const domain = window.location.hostname;
-        showNotification(t(`النطاق (${domain}) غير مصرح به لجوجل. يرجى تسجيل الدخول بالبريد والرمز بالنموذج أعلاه.`, `Domain (${domain}) not authorized for Google. Please log in with Email & Password in form above.`));
+        showNotification(t(`النطاق (${domain}) غير مصرح به. يرجى إضافته في إعدادات Authentication في Firebase Console.`, `Domain (${domain}) is not authorized. Please add it to Authentication settings in Firebase Console.`));
       } else if (errorMsg.includes('invalid-session-id')) {
         showNotification(t('خطأ في الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'Session error. Please refresh the page and try again.'));
       } else {
-        showNotification(t(`فشل تسجيل الدخول بجوجل: ${errorMsg}`, `Google login failed: ${errorMsg}`));
+        showNotification(t(`فشل تسجيل الدخول: ${errorMsg}`, `Login failed: ${errorMsg}`));
       }
     }
   };
