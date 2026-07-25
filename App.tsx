@@ -67,7 +67,7 @@ function App() {
   }, [isManualAdmin, firebaseUser]);
 
   // Genuine Firestore Access Guard (for sensitive collections)
-  const canAccessSensitiveData = !!firebaseUser && isAdminUser;
+  const canAccessSensitiveData = isAdminUser;
 
   // Firestore Data Listeners
   useEffect(() => {
