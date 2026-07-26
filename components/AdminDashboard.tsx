@@ -243,34 +243,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {t('تسجيل الدخول عبر جوجل', 'Login with Google')}
               </button>
 
-              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                <details className="group cursor-pointer">
-                  <summary className="text-xs text-gray-400 hover:text-emerald-600 transition-colors list-none flex items-center justify-center gap-1 font-medium">
-                    <TriangleAlert size={12} className="group-open:rotate-180 transition-transform" />
-                    {t('مشاكل في تسجيل الدخول؟', 'Login issues?')}
-                  </summary>
-                  <div className="mt-3 p-4 bg-gray-50 rounded-xl text-[10px] sm:text-xs text-gray-600 space-y-2 text-right rtl">
-                    <p className="font-bold text-red-600">
-                      {t('إذا ظهر خطأ "unauthorized-domain":', 'If you see "unauthorized-domain" error:')}
-                    </p>
-                    <p>
-                      {t('1. اذهب إلى Firebase Console > Authentication > Settings > Authorized domains', '1. Go to Firebase Console > Authentication > Settings > Authorized domains')}
-                    </p>
-                    <p>
-                      {t('2. أضف هذه النطاقات (النطاق الحالي وأي نطاق مشاركة):', '2. Add these domains (current and any shared domains):')}
-                    </p>
-                    <code className="block bg-white p-2 rounded border border-gray-200 select-all font-mono text-emerald-600 break-all">
-                      {window.location.hostname}
-                    </code>
-                    <p className="text-[9px] text-gray-500 italic">
-                      {t('* ملحوظة: إذا كنت تستخدم رابط المشاركة، ستحتاج لإضافته أيضاً.', '* Note: If you use the shared link, you will need to add it as well.')}
-                    </p>
-                    <p className="text-[10px] text-gray-400">
-                      {t('* تأكد من تفعيل Google Login في قسم Sign-in method', '* Ensure Google Login is enabled in Sign-in method section')}
-                    </p>
-                  </div>
-                </details>
-              </div>
+
             </form>
         </div>
       </div>
